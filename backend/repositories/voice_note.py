@@ -34,7 +34,7 @@ def create(
             "med_id": med_id,
             "created_at": created,
             "updated_at": created,
-            "created_date": created.date().isoformat(),
+            "created_at": created.date().isoformat(),
         }
         doc_ref = client.collection("voice_notes").document()
         doc_ref.set(payload)
@@ -65,7 +65,7 @@ def get_by_date(db: Session, target_date: date) -> list[VoiceNote]:
         client = get_firestore_client()
         docs = (
             client.collection("voice_notes")
-            .where("created_date", "==", target_date.isoformat())
+            .where("created_at", "==", target_date.isoformat())
             .get()
         )
         notes = []
@@ -96,7 +96,7 @@ def get_by_date_for_patient(db: Session, patient_id: str, target_date: date) -> 
         notes = []
         for doc in docs:
             data = doc.to_dict()
-            if data.get("created_date") != target_date.isoformat():
+            if data.get("created_at") != target_date.isoformat():
                 continue
             data["id"] = doc.id
             data["created_at"] = normalize_timestamp(data.get("created_at"))
@@ -120,7 +120,7 @@ def count_by_date(db: Session, target_date: date) -> int:
         client = get_firestore_client()
         docs = (
             client.collection("voice_notes")
-            .where("created_date", "==", target_date.isoformat())
+            .where("created_at", "==", target_date.isoformat())
             .get()
         )
         return len(docs)
