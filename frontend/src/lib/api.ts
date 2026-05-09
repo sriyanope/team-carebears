@@ -1,9 +1,16 @@
+export type AppLanguage = 'en' | 'zh' | 'ms' | 'ta'
+
+export interface PatientInfo {
+  patient_name: string
+  caregiver_name: string
+}
+
 export interface VoiceNote {
   id: string
   patient_id: string
   transcript: string
-  note_type: string   // "adhoc" | "daily_wellbeing" | "medication"
-  language: string    // "en" | "zh" | "ms" | "ta"
+  note_type: string
+  language: string
   med_id: string | null
   created_at: string
   updated_at: string
@@ -21,26 +28,30 @@ export interface Medication {
   updated_at: string
 }
 
-export interface DailyWellbeing {
+export type SleepPattern = 'earlier_sleep_later_wake' | 'same' | 'later_sleep_earlier_wake'
+export type Appetite = 'eating_less' | 'same' | 'eating_more'
+export type Mood = 'happy' | 'ok' | 'neutral' | 'sad' | 'upset'
+
+export interface DailyWellbeingEntry {
   id: string
   patient_id: string
-  date: string           // "YYYY-MM-DD"
-  sleep_pattern: string  // "earlier_sleep_later_wake" | "same" | "later_sleep_earlier_wake"
-  appetite: string       // "eating_less" | "same" | "eating_more"
-  mood: string           // "happy" | "ok" | "neutral" | "sad" | "upset"
+  date: string
+  sleep_pattern: SleepPattern
+  appetite: Appetite
+  mood: Mood
   voice_note_id: string | null
   created_at: string
 }
 
 export interface DailyWellbeingRequest {
-  sleep_pattern: string
-  appetite: string
-  mood: string
-  voice_note_id?: string | null
+  sleep_pattern: SleepPattern
+  appetite: Appetite
+  mood: Mood
+  voice_note_id?: string
 }
 
 export interface ReportFlag {
-  severity: string  // "red" | "amber"
+  severity: 'red' | 'amber'
   text: string
 }
 
@@ -57,10 +68,20 @@ export interface ReportDetail extends ReportSummary {
   flags: ReportFlag[]
 }
 
+interface MockOnboardingResponse {
+  patient?: {
+    name?: string
+  }
+  caregiver?: {
+    name?: string
+  }
+}
+
 interface MockData {
+  onboarding?: MockOnboardingResponse
   voice_notes?: VoiceNote[]
   medications?: Medication[]
-  daily_wellbeing?: DailyWellbeing[]
+  daily_wellbeing?: DailyWellbeingEntry[]
   reports?: ReportSummary[]
 }
 
@@ -85,15 +106,37 @@ function withBase(path: string): string {
   return API_BASE ? `${API_BASE}${path}` : path
 }
 
-// ── Voice Notes ──────────────────────────────────────────────────────────────
+export async function getPatientInfo(): Promise<PatientInfo> {
+  if (MOCK_MODE) {
+    const onboarding = getMockData().onboarding
+    return {
+      patient_name: onboarding?.patient?.name || 'Dad',
+      caregiver_name: onboarding?.caregiver?.name || 'Sarah',
+    }
+  }
+
+  try {
+    const res = await fetch(withBase('/api/onboarding'))
+    if (res.ok) {
+      const data = (await res.json()) as MockOnboardingResponse
+      return {
+        patient_name: data.patient?.name || 'Dad',
+        caregiver_name: data.caregiver?.name || 'Sarah',
+      }
+    }
+  } catch {}
+
+  return { patient_name: 'Dad', caregiver_name: 'Sarah' }
+}
 
 export async function fetchVoiceNotes(date?: string): Promise<VoiceNote[] | null> {
   if (MOCK_MODE) return getMockData().voice_notes ?? null
+
   try {
     const url = date ? `/api/voice-notes?target_date=${date}` : '/api/voice-notes'
     const res = await fetch(withBase(url))
     if (!res.ok) return null
-    return res.json()
+    return (await res.json()) as VoiceNote[]
   } catch {
     return null
   }
@@ -101,36 +144,51 @@ export async function fetchVoiceNotes(date?: string): Promise<VoiceNote[] | null
 
 export async function postVoiceNote(
   audioBlob: Blob,
-  type: string,
-  language: string = 'en',
+  noteType: string,
+  language?: AppLanguage,
   medId?: string,
 ): Promise<VoiceNote | null> {
+  const selectedLanguage = language ?? 'en'
+
   if (MOCK_MODE) {
-    const notes = getMockData().voice_notes ?? []
-    return notes[0] ?? null
+    const now = new Date().toISOString()
+    return {
+      id: crypto.randomUUID(),
+      patient_id: 'mock-patient',
+      transcript: 'Mock transcript saved.',
+      note_type: noteType,
+      language: selectedLanguage,
+      med_id: medId ?? null,
+      created_at: now,
+      updated_at: now,
+    }
   }
+
   try {
     const form = new FormData()
     form.append('audio', audioBlob, 'recording.webm')
-    form.append('type', type)
-    form.append('language', language)
+    form.append('type', noteType)
+    form.append('language', selectedLanguage)
     if (medId) form.append('med_id', medId)
-    const res = await fetch(withBase('/api/voice-notes'), { method: 'POST', body: form })
+
+    const res = await fetch(withBase('/api/voice-notes'), {
+      method: 'POST',
+      body: form,
+    })
     if (!res.ok) return null
-    return res.json()
+    return (await res.json()) as VoiceNote
   } catch {
     return null
   }
 }
 
-// ── Medications ───────────────────────────────────────────────────────────────
-
 export async function fetchMedications(): Promise<Medication[] | null> {
   if (MOCK_MODE) return getMockData().medications ?? null
+
   try {
     const res = await fetch(withBase('/api/medications'))
     if (!res.ok) return null
-    return res.json()
+    return (await res.json()) as Medication[]
   } catch {
     return null
   }
@@ -143,8 +201,9 @@ export async function patchMedication(
 ): Promise<Medication | null> {
   if (MOCK_MODE) {
     const meds = getMockData().medications ?? []
-    return meds.find((m) => m.id === id) ?? meds[0] ?? null
+    return meds.find((med) => med.id === id) ?? meds[0] ?? null
   }
+
   try {
     const res = await fetch(withBase(`/api/medications/${id}`), {
       method: 'PATCH',
@@ -152,21 +211,20 @@ export async function patchMedication(
       body: JSON.stringify({ done, voice_note: voiceNote }),
     })
     if (!res.ok) return null
-    return res.json()
+    return (await res.json()) as Medication
   } catch {
     return null
   }
 }
 
-// ── Daily Wellbeing ───────────────────────────────────────────────────────────
-
-export async function fetchDailyWellbeing(date?: string): Promise<DailyWellbeing[] | null> {
+export async function fetchDailyWellbeing(date?: string): Promise<DailyWellbeingEntry[] | null> {
   if (MOCK_MODE) return getMockData().daily_wellbeing ?? null
+
   try {
     const url = date ? `/api/daily-wellbeing?target_date=${date}` : '/api/daily-wellbeing'
     const res = await fetch(withBase(url))
     if (!res.ok) return null
-    return res.json()
+    return (await res.json()) as DailyWellbeingEntry[]
   } catch {
     return null
   }
@@ -174,11 +232,21 @@ export async function fetchDailyWellbeing(date?: string): Promise<DailyWellbeing
 
 export async function postDailyWellbeing(
   payload: DailyWellbeingRequest,
-): Promise<DailyWellbeing | null> {
+): Promise<DailyWellbeingEntry | null> {
   if (MOCK_MODE) {
-    const entries = getMockData().daily_wellbeing ?? []
-    return entries[0] ?? null
+    const now = new Date()
+    return {
+      id: crypto.randomUUID(),
+      patient_id: 'mock-patient',
+      date: now.toISOString().slice(0, 10),
+      sleep_pattern: payload.sleep_pattern,
+      appetite: payload.appetite,
+      mood: payload.mood,
+      voice_note_id: payload.voice_note_id ?? null,
+      created_at: now.toISOString(),
+    }
   }
+
   try {
     const res = await fetch(withBase('/api/daily-wellbeing'), {
       method: 'POST',
@@ -186,30 +254,27 @@ export async function postDailyWellbeing(
       body: JSON.stringify(payload),
     })
     if (!res.ok) return null
-    return res.json()
+    return (await res.json()) as DailyWellbeingEntry
   } catch {
     return null
   }
 }
-
-// ── Reports ───────────────────────────────────────────────────────────────────
 
 export async function fetchReports(): Promise<ReportSummary[] | null> {
   if (MOCK_MODE) return getMockData().reports ?? null
+
   try {
     const res = await fetch(withBase('/api/reports'))
     if (!res.ok) return null
-    return res.json()
+    return (await res.json()) as ReportSummary[]
   } catch {
     return null
   }
 }
 
-export async function postReport(
-  startDate: string,
-  endDate: string,
-): Promise<ReportDetail | null> {
+export async function postReport(startDate: string, endDate: string): Promise<ReportDetail | null> {
   if (MOCK_MODE) return null
+
   try {
     const res = await fetch(withBase('/api/reports'), {
       method: 'POST',
@@ -217,7 +282,7 @@ export async function postReport(
       body: JSON.stringify({ start_date: startDate, end_date: endDate }),
     })
     if (!res.ok) return null
-    return res.json()
+    return (await res.json()) as ReportDetail
   } catch {
     return null
   }
@@ -225,10 +290,11 @@ export async function postReport(
 
 export async function fetchReport(id: string): Promise<ReportDetail | null> {
   if (MOCK_MODE) return null
+
   try {
     const res = await fetch(withBase(`/api/reports/${id}`))
     if (!res.ok) return null
-    return res.json()
+    return (await res.json()) as ReportDetail
   } catch {
     return null
   }
