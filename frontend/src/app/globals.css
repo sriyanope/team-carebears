@@ -12,3 +12,9 @@ body {
   background: #F5F4F2;
   color: #4A4845;
 }
+
+h1,
+h2,
+h3 {
+  color: #1E1C1A;
+}

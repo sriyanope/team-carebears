@@ -2,23 +2,34 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
-import { postVoiceNote, VoiceNote } from '@/lib/api'
+import { VoiceNote, postVoiceNote } from '@/lib/api'
+import { useLanguage } from '@/lib/LanguageContext'
 
-type RecorderState = 'idle' | 'recording' | 'transcribing' | 'done'
+type RecorderState = 'idle' | 'recording' | 'transcribing' | 'review' | 'success'
 
 interface Props {
   noteType?: string
-  slot?: string
-  compact?: boolean
+  variant?: 'hero' | 'inline'
+  idleLabel?: string
+  successLabel?: string
   onSave?: (note: VoiceNote) => void
 }
 
-export default function VoiceRecorder({ noteType = 'adhoc', slot, compact = false, onSave }: Props) {
+export default function VoiceRecorder({
+  noteType = 'adhoc',
+  variant = 'inline',
+  idleLabel = 'Tap to record',
+  successLabel = 'Saved successfully',
+  onSave,
+}: Props) {
   const { isRecording, audioBlob, analyserNode, duration, start, stop, reset } = useAudioRecorder()
+  const { language } = useLanguage()
   const [state, setState] = useState<RecorderState>('idle')
   const [transcript, setTranscript] = useState('')
+  const [savedNote, setSavedNote] = useState<VoiceNote | null>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rafRef = useRef<number>(0)
+  const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (isRecording) setState('recording')
@@ -26,106 +37,169 @@ export default function VoiceRecorder({ noteType = 'adhoc', slot, compact = fals
 
   useEffect(() => {
     if (audioBlob && !isRecording && state === 'recording') {
-      handleTranscribe()
+      void handleTranscribe()
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audioBlob, isRecording])
 
   useEffect(() => {
+    return () => {
+      if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current)
+    }
+  }, [])
+
+  useEffect(() => {
     if (!analyserNode || !canvasRef.current) return
+
     const canvas = canvasRef.current
-    const ctx = canvas.getContext('2d')!
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
     const data = new Uint8Array(analyserNode.frequencyBinCount)
 
     const draw = () => {
       rafRef.current = requestAnimationFrame(draw)
       analyserNode.getByteFrequencyData(data)
       ctx.clearRect(0, 0, canvas.width, canvas.height)
-      const barW = canvas.width / 5
+      const barWidth = canvas.width / 5
       const picks = [2, 5, 10, 5, 2]
-      picks.forEach((idx, i) => {
-        const h = Math.max(4, (data[idx] / 255) * canvas.height)
+
+      picks.forEach((index, column) => {
+        const height = Math.max(4, (data[index] / 255) * canvas.height)
         ctx.fillStyle = '#FFFFFF'
         ctx.beginPath()
-        ctx.roundRect(i * barW + barW * 0.25, (canvas.height - h) / 2, barW * 0.5, h, 3)
+        ctx.roundRect(column * barWidth + barWidth * 0.25, (canvas.height - height) / 2, barWidth * 0.5, height, 3)
         ctx.fill()
       })
     }
+
     draw()
     return () => cancelAnimationFrame(rafRef.current)
   }, [analyserNode])
 
-  async function handleTranscribe() {
-    if (!audioBlob) return
-    setState('transcribing')
-    const note = await postVoiceNote(audioBlob, noteType, slot)
-    if (note) {
-      setTranscript(note.transcript)
-      setState('done')
-      onSave?.(note)
-    } else {
-      setState('idle')
-      reset()
+  function handleReset() {
+    if (successTimeoutRef.current) {
+      clearTimeout(successTimeoutRef.current)
+      successTimeoutRef.current = null
     }
-  }
-
-  function handleDiscard() {
     reset()
     setTranscript('')
+    setSavedNote(null)
     setState('idle')
   }
 
-  const pillHeight = compact ? 'h-12' : 'h-20'
+  async function handleTranscribe() {
+    if (!audioBlob) return
+
+    setState('transcribing')
+    const note = await postVoiceNote(audioBlob, noteType, language)
+
+    if (!note) {
+      handleReset()
+      return
+    }
+
+    setSavedNote(note)
+    setTranscript(note.transcript)
+    setState('review')
+    onSave?.(note)
+  }
+
+  function handleConfirmSave() {
+    setState('success')
+    successTimeoutRef.current = setTimeout(() => {
+      handleReset()
+    }, 1200)
+  }
+
+  const isHero = variant === 'hero'
+  const heroButtonSize = 'h-56 w-56'
+  const baseButtonClass = 'flex items-center justify-center text-white active:scale-[0.98] transition-transform'
+  const idleButtonClass = isHero
+    ? `${baseButtonClass} mx-auto rounded-full bg-blue-500 shadow-[0_18px_40px_rgba(26,111,191,0.18)]`
+    : `${baseButtonClass} w-full rounded-2xl bg-blue-500 px-5 py-4`
+  const recordingButtonClass = isHero
+    ? `${baseButtonClass} mx-auto rounded-full bg-rose-500 shadow-[0_18px_40px_rgba(192,57,43,0.18)]`
+    : `${baseButtonClass} w-full rounded-2xl bg-rose-500 px-5 py-4`
+
+  const savedAt = savedNote
+    ? new Date(savedNote.created_at).toLocaleTimeString('en-SG', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      })
+    : null
 
   if (state === 'idle') {
     return (
-      <button
-        onClick={start}
-        className={`w-full ${pillHeight} rounded-2xl bg-blue-500 flex items-center justify-center gap-3 active:scale-[0.98] transition-transform`}
-      >
-        <span className="text-3xl">🎙️</span>
-        <span className="text-white font-semibold text-base">Tap to record</span>
-      </button>
+      <div className={isHero ? 'space-y-4 text-center' : 'space-y-3'}>
+        <button onClick={() => void start()} className={isHero ? `${idleButtonClass} ${heroButtonSize}` : idleButtonClass}>
+          <div className="flex flex-col items-center justify-center gap-2">
+            <span className={isHero ? 'text-6xl' : 'text-2xl'}>🎙️</span>
+            <span className={`${isHero ? 'text-lg' : 'text-sm'} font-semibold`}>{idleLabel}</span>
+          </div>
+        </button>
+      </div>
     )
   }
 
   if (state === 'recording') {
-    const fmt = `${Math.floor(duration / 60)}:${String(duration % 60).padStart(2, '0')}`
+    const formattedDuration = `${Math.floor(duration / 60)}:${String(duration % 60).padStart(2, '0')}`
+
     return (
       <button
         onClick={stop}
-        className={`w-full ${pillHeight} rounded-2xl bg-rose-500 flex items-center justify-center gap-3 active:scale-[0.98] transition-transform`}
+        className={isHero ? `${recordingButtonClass} ${heroButtonSize}` : recordingButtonClass}
       >
-        <canvas ref={canvasRef} width={60} height={32} className="opacity-90" />
-        <span className="text-white font-semibold text-base">{fmt} · Tap to stop</span>
+        <div className="flex flex-col items-center justify-center gap-2">
+          <canvas ref={canvasRef} width={72} height={36} className="opacity-90" />
+          <span className={`${isHero ? 'text-lg' : 'text-sm'} font-semibold`}>
+            {formattedDuration} · Tap to stop
+          </span>
+        </div>
       </button>
     )
   }
 
   if (state === 'transcribing') {
     return (
-      <div className={`w-full ${pillHeight} rounded-2xl bg-blue-500 flex items-center justify-center gap-3`}>
-        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-        <span className="text-white font-semibold text-base">Transcribing…</span>
+      <div className="space-y-3 rounded-2xl border border-blue-100 bg-blue-50 p-5 text-center">
+        <div className="mx-auto h-10 w-10 rounded-full border-4 border-blue-500 border-t-transparent animate-spin" />
+        <p className="font-semibold text-blue-700">Transcribing…</p>
+        <p className="text-sm text-stone-400">Saving the note in {language.toUpperCase()}.</p>
+      </div>
+    )
+  }
+
+  if (state === 'success') {
+    return (
+      <div className="space-y-2 rounded-2xl border border-sage-50 bg-sage-50 p-5 text-center">
+        <p className="text-lg font-semibold text-sage-500">Saved ✓</p>
+        <p className="text-sm text-stone-700">{successLabel}</p>
       </div>
     )
   }
 
   return (
-    <div className="rounded-2xl border border-stone-100 p-4 space-y-3">
-      <p className="text-stone-700 text-sm italic leading-relaxed">{transcript}</p>
+    <div className="space-y-4 rounded-2xl border border-stone-100 bg-white p-5">
+      <div className="space-y-2">
+        <p className="text-xs uppercase tracking-[0.18em] text-stone-400">Transcript</p>
+        <p className="text-base leading-relaxed text-stone-700">{transcript}</p>
+        {savedAt && <p className="text-sm text-stone-400">Recorded at {savedAt}</p>}
+      </div>
+
       <div className="flex gap-3">
         <button
-          onClick={handleDiscard}
-          className="flex-1 py-2 rounded-xl border border-stone-200 text-stone-500 text-sm font-medium"
+          onClick={handleReset}
+          className="flex-1 rounded-xl border border-stone-100 px-4 py-3 text-sm font-medium text-stone-700"
         >
           Discard
         </button>
         <button
-          onClick={() => { reset(); setState('idle') }}
-          className="flex-1 py-2 rounded-xl bg-blue-500 text-white text-sm font-semibold"
+          onClick={handleConfirmSave}
+          className="flex-1 rounded-xl bg-blue-500 px-4 py-3 text-sm font-semibold text-white"
         >
-          Saved ✓
+          Save
         </button>
       </div>
     </div>
