@@ -7,20 +7,7 @@ import MetricCard from '@/components/MetricCard'
 import ScheduleStrip from '@/components/ScheduleStrip'
 import VoiceRecorder from '@/components/VoiceRecorder'
 import NoteChip from '@/components/NoteChip'
-import { ScheduleSlot } from '@/lib/api'
 
-const FALLBACK: DashboardResponse = {
-  patient: { name: 'Dad', caregiver_name: 'Sarah', tracking_days: 1 },
-  metrics: { meds_done: 2, meds_total: 3, food_avg: 42, hydration: 3, notes_count: 3 },
-  schedule: [
-    { slot: '9AM', label: '9 AM', status: 'done' },
-    { slot: '12PM', label: '12 PM', status: 'done' },
-    { slot: '3PM', label: '3 PM', status: 'current' },
-    { slot: '6PM', label: '6 PM', status: 'upcoming' },
-    { slot: '9PM', label: '9 PM', status: 'upcoming' },
-  ] as ScheduleSlot[],
-  recent_notes: [],
-}
 
 const NAV = [
   { href: '/medications', emoji: '💊', title: 'Medications', desc: 'Track doses & observations' },
@@ -36,7 +23,7 @@ function greeting(name: string): string {
 }
 
 export default function Dashboard() {
-  const [data, setData] = useState<DashboardResponse>(FALLBACK)
+  const [data, setData] = useState<DashboardResponse | null>(null)
   const [notes, setNotes] = useState<VoiceNote[]>([])
 
   useEffect(() => {
@@ -54,6 +41,14 @@ export default function Dashboard() {
       ...prev,
       metrics: { ...prev.metrics, notes_count: prev.metrics.notes_count + 1 },
     }))
+  }
+
+  if (!data) {
+    return (
+      <div className="px-5 py-6 text-stone-400 text-sm">
+        No data yet. Connect the backend or enable mock mode.
+      </div>
+    )
   }
 
   const { patient, metrics, schedule } = data
@@ -78,33 +73,41 @@ export default function Dashboard() {
       <div>
         <p className="text-xs uppercase tracking-widest text-stone-400 mb-3">Today at a glance</p>
         <div className="grid grid-cols-2 gap-3">
-          <MetricCard
-            emoji="💊"
-            label="Meds"
-            value={`${metrics.meds_done}/${metrics.meds_total}`}
-            sub={metrics.meds_done === metrics.meds_total ? 'All done ✓' : `${metrics.meds_total - metrics.meds_done} remaining`}
-            variant={medVariant}
-          />
-          <MetricCard
-            emoji="🍽️"
-            label="Food"
-            value={`${metrics.food_avg}%`}
-            sub={metrics.food_avg < 60 ? 'Below target' : 'On track'}
-            variant={foodVariant}
-          />
-          <MetricCard
-            emoji="💧"
-            label="Hydration"
-            value={`${metrics.hydration}/8`}
-            sub={metrics.hydration < 5 ? 'Needs attention' : 'Good'}
-            variant={hydrationVariant}
-          />
-          <MetricCard
-            emoji="🎙️"
-            label="Notes"
-            value={String(metrics.notes_count)}
-            sub="logged today"
-          />
+          <Link href="/medications" className="active:scale-[0.98] transition-transform" aria-label="View medications">
+            <MetricCard
+              emoji="💊"
+              label="Meds"
+              value={`${metrics.meds_done}/${metrics.meds_total}`}
+              sub={metrics.meds_done === metrics.meds_total ? 'All done ✓' : `${metrics.meds_total - metrics.meds_done} remaining`}
+              variant={medVariant}
+            />
+          </Link>
+          <Link href="/tracker" className="active:scale-[0.98] transition-transform" aria-label="View food tracker">
+            <MetricCard
+              emoji="🍽️"
+              label="Food"
+              value={`${metrics.food_avg}%`}
+              sub={metrics.food_avg < 60 ? 'Below target' : 'On track'}
+              variant={foodVariant}
+            />
+          </Link>
+          <Link href="/tracker" className="active:scale-[0.98] transition-transform" aria-label="View hydration tracker">
+            <MetricCard
+              emoji="💧"
+              label="Hydration"
+              value={`${metrics.hydration}/8`}
+              sub={metrics.hydration < 5 ? 'Needs attention' : 'Good'}
+              variant={hydrationVariant}
+            />
+          </Link>
+          <Link href="/voice" className="active:scale-[0.98] transition-transform" aria-label="View voice notes">
+            <MetricCard
+              emoji="🎙️"
+              label="Notes"
+              value={String(metrics.notes_count)}
+              sub="logged today"
+            />
+          </Link>
         </div>
       </div>
 
