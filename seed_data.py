@@ -5,7 +5,7 @@ Run directly to populate Firestore with clean test data:
 import sys
 from datetime import datetime, timezone
 
-from firebase_client import get_firestore_client
+from backend.firebase_client import get_firestore_client
 
 
 def run():
