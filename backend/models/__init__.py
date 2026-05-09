@@ -1,6 +1,8 @@
 from .patient import Patient
 from .medication import Medication
 from .voice_note import VoiceNote
-from .daily_log import DailyLog
+from .caregiver import Caregiver
+from .daily_wellbeing import DailyWellbeing
+from .report import Report, ReportFlag
 
-__all__ = ["Patient", "Medication", "VoiceNote", "DailyLog"]
+__all__ = ["Patient", "Medication", "VoiceNote", "Caregiver", "DailyWellbeing", "Report", "ReportFlag"]

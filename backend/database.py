@@ -1,29 +1,18 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, DeclarativeBase
-from .config import settings
+"""
+Minimal stub kept for backwards compatibility with medication files (hands-off).
+The app runs Firestore-only; db/engine are always None.
+"""
+from typing import Generator
 
+from sqlalchemy.orm import DeclarativeBase
 
-if settings.FIREBASE_MODE:
-    engine = None
-else:
-    if not settings.DATABASE_URL:
-        raise ValueError("DATABASE_URL is required for database connections")
-    engine = create_engine(settings.DATABASE_URL)
-
-
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine) if engine else None
+engine = None
+SessionLocal = None
 
 
 class Base(DeclarativeBase):
     pass
 
 
-def get_db():
-    if SessionLocal is None:
-        yield None
-        return
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+def get_db() -> Generator:
+    yield None

@@ -1,3 +1,3 @@
-from . import dashboard, medications, summary, tracker, voice_notes
+from . import medications, voice_notes, daily_wellbeing, reports
 
-__all__ = ["dashboard", "medications", "summary", "tracker", "voice_notes"]
+__all__ = ["medications", "voice_notes", "daily_wellbeing", "reports"]

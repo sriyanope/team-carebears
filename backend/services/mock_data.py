@@ -2,9 +2,9 @@ import json
 from typing import Any
 
 from ..config import settings
-from ..schemas.dashboard import DashboardResponse, SummaryResponse
-from ..schemas.daily_log import DailyLogResponse
+from ..schemas.daily_wellbeing import DailyWellbeingResponse
 from ..schemas.medication import MedicationResponse
+from ..schemas.report import ReportSummaryResponse
 from ..schemas.voice_note import VoiceNoteResponse
 
 _mock_cache: dict[str, Any] | None = None
@@ -29,13 +29,6 @@ def _load_mock_data() -> dict[str, Any]:
     return _mock_cache
 
 
-def get_dashboard() -> DashboardResponse | None:
-    data = _load_mock_data().get("dashboard")
-    if not data:
-        return None
-    return DashboardResponse.model_validate(data)
-
-
 def get_voice_notes() -> list[VoiceNoteResponse] | None:
     data = _load_mock_data().get("voice_notes")
     if not data:
@@ -50,15 +43,15 @@ def get_medications() -> list[MedicationResponse] | None:
     return [MedicationResponse.model_validate(item) for item in data]
 
 
-def get_daily_log() -> DailyLogResponse | None:
-    data = _load_mock_data().get("daily_log")
+def get_daily_wellbeing() -> list[DailyWellbeingResponse] | None:
+    data = _load_mock_data().get("daily_wellbeing")
     if not data:
         return None
-    return DailyLogResponse.model_validate(data)
+    return [DailyWellbeingResponse.model_validate(item) for item in data]
 
 
-def get_summary() -> SummaryResponse | None:
-    data = _load_mock_data().get("summary")
+def get_reports() -> list[ReportSummaryResponse] | None:
+    data = _load_mock_data().get("reports")
     if not data:
         return None
-    return SummaryResponse.model_validate(data)
+    return [ReportSummaryResponse.model_validate(item) for item in data]

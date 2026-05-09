@@ -1,9 +1,8 @@
 anthropic==0.100.0
 fastapi==0.136.1
-firebase-admin==6.6.0
+firebase_admin==6.5.0
 openai==2.36.0
 openai_whisper==20250625
 pydantic==2.13.4
 pydantic_settings==2.14.1
-psycopg[binary]==3.2.9
 SQLAlchemy==2.0.49
