@@ -11,6 +11,8 @@ def get_all(db: Session) -> list:
     patient = patient_repo.get_first(db)
     if not patient:
         return []
+    print(patient.id)
+    print(med_repo.get_by_patient(db, "/patients/"+patient.id))
     return med_repo.get_by_patient(db, patient.id)
 
 
@@ -25,3 +27,4 @@ def update(db: Session, med_id: str, done: bool, voice_note: str | None = None) 
     if med is None:
         return None
     return med_repo.update(db, med, done=done, voice_note_text=voice_note)
+

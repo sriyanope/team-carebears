@@ -17,6 +17,7 @@ def get_first(db: Session) -> Patient | None:
         data["id"] = docs[0].id
         data["created_at"] = normalize_timestamp(data.get("created_at"))
         data["updated_at"] = normalize_timestamp(data.get("updated_at"))
+        print(data["id"])
         return Patient(**data)
     return db.query(Patient).first()
 
