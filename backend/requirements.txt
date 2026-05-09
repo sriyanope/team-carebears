@@ -1,10 +1,7 @@
-fastapi>=0.111.0
-uvicorn[standard]>=0.29.0
-sqlalchemy>=2.0.0
-alembic>=1.13.0
-python-multipart>=0.0.9
-pydantic-settings>=2.2.0
-anthropic>=0.25.0
-openai>=1.30.0
-openai-whisper>=20231117
-python-dotenv>=1.0.0
+anthropic==0.100.0
+fastapi==0.136.1
+openai==2.36.0
+openai_whisper==20250625
+pydantic==2.13.4
+pydantic_settings==2.14.1
+SQLAlchemy==2.0.49
