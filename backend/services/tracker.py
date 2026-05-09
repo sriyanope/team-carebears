@@ -1,18 +1,28 @@
 from datetime import date
+
 from sqlalchemy.orm import Session
-from ..repositories import daily_log as log_repo, patient as patient_repo
-from ..schemas.daily_log import TrackerCreate, FoodData, HydrationUpdate
+
+from . import mock_data
+from ..repositories import daily_log as log_repo
+from ..repositories import patient as patient_repo
+from ..schemas.daily_log import FoodData, HydrationUpdate, TrackerCreate
 
 
 def get_by_date(db: Session, target_date: date) -> object | None:
+    if mock_data.is_enabled():
+        return mock_data.get_daily_log()
     patient = patient_repo.get_first(db)
     if not patient:
         return None
     return log_repo.get_by_date(db, patient.id, target_date)
 
 
-def save_tracker(db: Session, data: TrackerCreate) -> object:
+def save_tracker(db: Session, data: TrackerCreate) -> object | None:
+    if mock_data.is_enabled():
+        return mock_data.get_daily_log()
     patient = patient_repo.get_first(db)
+    if not patient:
+        return None
     today = date.today()
     fields: dict = {}
     if data.mood is not None:
@@ -39,8 +49,12 @@ def save_tracker(db: Session, data: TrackerCreate) -> object:
     return log_repo.upsert(db, patient_id=patient.id, target_date=today, **fields)
 
 
-def update_food(db: Session, food: FoodData) -> object:
+def update_food(db: Session, food: FoodData) -> object | None:
+    if mock_data.is_enabled():
+        return mock_data.get_daily_log()
     patient = patient_repo.get_first(db)
+    if not patient:
+        return None
     fields = {}
     if food.breakfast is not None:
         fields["food_breakfast"] = food.breakfast
@@ -51,8 +65,12 @@ def update_food(db: Session, food: FoodData) -> object:
     return log_repo.upsert(db, patient_id=patient.id, target_date=date.today(), **fields)
 
 
-def update_hydration(db: Session, update: HydrationUpdate) -> object:
+def update_hydration(db: Session, update: HydrationUpdate) -> object | None:
+    if mock_data.is_enabled():
+        return mock_data.get_daily_log()
     patient = patient_repo.get_first(db)
+    if not patient:
+        return None
     return log_repo.upsert(
         db, patient_id=patient.id, target_date=date.today(), hydration=update.glasses
     )

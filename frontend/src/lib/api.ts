@@ -83,6 +83,35 @@ export interface SummaryResponse {
   questions: string[]
 }
 
+interface MockData {
+  dashboard?: DashboardResponse
+  voice_notes?: VoiceNote[]
+  medications?: Medication[]
+  daily_log?: DailyLog
+  summary?: SummaryResponse
+}
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') ?? ''
+const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE === 'true' || process.env.NEXT_PUBLIC_MOCK_MODE === '1'
+const MOCK_DATA_JSON = process.env.NEXT_PUBLIC_MOCK_DATA_JSON?.trim() ?? ''
+
+let mockCache: MockData | null = null
+
+function getMockData(): MockData {
+  if (mockCache) return mockCache
+  if (!MOCK_DATA_JSON) return {}
+  try {
+    mockCache = JSON.parse(MOCK_DATA_JSON) as MockData
+  } catch {
+    mockCache = {}
+  }
+  return mockCache
+}
+
+function withBase(path: string): string {
+  return API_BASE ? `${API_BASE}${path}` : path
+}
+
 export interface TrackerPayload {
   mood?: number
   food?: { breakfast?: number; lunch?: number; dinner?: number }
@@ -98,8 +127,9 @@ export interface TrackerPayload {
 }
 
 export async function fetchDashboard(): Promise<DashboardResponse | null> {
+  if (MOCK_MODE) return getMockData().dashboard ?? null
   try {
-    const res = await fetch('/api/dashboard')
+    const res = await fetch(withBase('/api/dashboard'))
     if (!res.ok) return null
     return res.json()
   } catch {
@@ -108,9 +138,10 @@ export async function fetchDashboard(): Promise<DashboardResponse | null> {
 }
 
 export async function fetchVoiceNotes(date?: string): Promise<VoiceNote[] | null> {
+  if (MOCK_MODE) return getMockData().voice_notes ?? null
   try {
     const url = date ? `/api/voice-notes?target_date=${date}` : '/api/voice-notes'
-    const res = await fetch(url)
+    const res = await fetch(withBase(url))
     if (!res.ok) return null
     return res.json()
   } catch {
@@ -124,13 +155,17 @@ export async function postVoiceNote(
   slot?: string,
   medId?: string,
 ): Promise<VoiceNote | null> {
+  if (MOCK_MODE) {
+    const notes = getMockData().voice_notes ?? []
+    return notes[0] ?? null
+  }
   try {
     const form = new FormData()
     form.append('audio', audioBlob, 'recording.webm')
     form.append('type', type)
     if (slot) form.append('slot', slot)
     if (medId) form.append('med_id', medId)
-    const res = await fetch('/api/voice-notes', { method: 'POST', body: form })
+    const res = await fetch(withBase('/api/voice-notes'), { method: 'POST', body: form })
     if (!res.ok) return null
     return res.json()
   } catch {
@@ -139,8 +174,9 @@ export async function postVoiceNote(
 }
 
 export async function fetchMedications(): Promise<Medication[] | null> {
+  if (MOCK_MODE) return getMockData().medications ?? null
   try {
-    const res = await fetch('/api/medications')
+    const res = await fetch(withBase('/api/medications'))
     if (!res.ok) return null
     return res.json()
   } catch {
@@ -153,8 +189,13 @@ export async function patchMedication(
   done: boolean,
   voiceNote?: string,
 ): Promise<Medication | null> {
+  if (MOCK_MODE) {
+    const meds = getMockData().medications ?? []
+    const found = meds.find((m) => m.id === id)
+    return found ?? meds[0] ?? null
+  }
   try {
-    const res = await fetch(`/api/medications/${id}`, {
+    const res = await fetch(withBase(`/api/medications/${id}`), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ done, voice_note: voiceNote }),
@@ -167,8 +208,9 @@ export async function patchMedication(
 }
 
 export async function fetchTracker(date: string): Promise<DailyLog | null> {
+  if (MOCK_MODE) return getMockData().daily_log ?? null
   try {
-    const res = await fetch(`/api/tracker/${date}`)
+    const res = await fetch(withBase(`/api/tracker/${date}`))
     if (!res.ok) return null
     return res.json()
   } catch {
@@ -177,8 +219,9 @@ export async function fetchTracker(date: string): Promise<DailyLog | null> {
 }
 
 export async function postTracker(payload: TrackerPayload): Promise<DailyLog | null> {
+  if (MOCK_MODE) return getMockData().daily_log ?? null
   try {
-    const res = await fetch('/api/tracker', {
+    const res = await fetch(withBase('/api/tracker'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -191,8 +234,9 @@ export async function postTracker(payload: TrackerPayload): Promise<DailyLog | n
 }
 
 export async function patchFood(breakfast?: number, lunch?: number, dinner?: number): Promise<DailyLog | null> {
+  if (MOCK_MODE) return getMockData().daily_log ?? null
   try {
-    const res = await fetch('/api/food', {
+    const res = await fetch(withBase('/api/food'), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ breakfast, lunch, dinner }),
@@ -205,8 +249,9 @@ export async function patchFood(breakfast?: number, lunch?: number, dinner?: num
 }
 
 export async function patchHydration(glasses: number): Promise<DailyLog | null> {
+  if (MOCK_MODE) return getMockData().daily_log ?? null
   try {
-    const res = await fetch('/api/hydration', {
+    const res = await fetch(withBase('/api/hydration'), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ glasses }),
@@ -219,9 +264,10 @@ export async function patchHydration(glasses: number): Promise<DailyLog | null> 
 }
 
 export async function fetchSummary(date?: string): Promise<SummaryResponse | null> {
+  if (MOCK_MODE) return getMockData().summary ?? null
   try {
     const url = date ? `/api/summary?target_date=${date}` : '/api/summary'
-    const res = await fetch(url)
+    const res = await fetch(withBase(url))
     if (!res.ok) return null
     return res.json()
   } catch {

@@ -1,6 +1,14 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
+
+from sqlalchemy.orm import Session
+
 from ..config import settings
+from ..repositories import daily_log as log_repo
+from ..repositories import medication as med_repo
+from ..repositories import patient as patient_repo
+from ..repositories import voice_note as vn_repo
 from ..schemas.dashboard import Flag, SummaryResponse
+from . import mock_data
 
 _client = None
 
@@ -110,3 +118,16 @@ Return ONLY 2-3 sentences of plain English summary and 3-5 suggested questions f
         flags=flags,
         questions=questions,
     )
+
+
+def get_summary(db: Session, target_date: date) -> SummaryResponse:
+    if mock_data.is_enabled():
+        mock = mock_data.get_summary()
+        if mock:
+            return mock
+    patient = patient_repo.get_first(db)
+    patient_id = patient.id if patient else ""
+    notes = vn_repo.get_by_date_for_patient(db, patient_id, target_date) if patient else []
+    meds = med_repo.get_by_patient(db, patient_id) if patient else []
+    log = log_repo.get_by_date(db, patient_id, target_date) if patient else None
+    return generate_summary(notes, meds, log, target_date)

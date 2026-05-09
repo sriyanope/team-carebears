@@ -1,24 +1,21 @@
 from contextlib import asynccontextmanager
 import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .database import engine, SessionLocal, Base
+
+from .api import dashboard, medications, summary, tracker, voice_notes
 from .config import settings
+from .database import Base, engine
 from .services import transcription as transcription_service
-from .seed import run_seed
-from .routers import dashboard, voice_notes, medications, tracker, summary
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Base.metadata.create_all(bind=engine)
+    if engine is not None:
+        Base.metadata.create_all(bind=engine)
     if settings.WHISPER_MODE == "local":
         transcription_service.load_model()
-    db = SessionLocal()
-    try:
-        run_seed(db)
-    finally:
-        db.close()
     yield
 
 

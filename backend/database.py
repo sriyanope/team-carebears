@@ -1,22 +1,17 @@
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from .config import settings
 
 
-engine = create_engine(
-    settings.DATABASE_URL,
-    connect_args={"check_same_thread": False},
-)
+if settings.FIREBASE_MODE:
+    engine = None
+else:
+    if not settings.DATABASE_URL:
+        raise ValueError("DATABASE_URL is required for database connections")
+    engine = create_engine(settings.DATABASE_URL)
 
 
-@event.listens_for(engine, "connect")
-def set_wal_mode(dbapi_conn, _):
-    cursor = dbapi_conn.cursor()
-    cursor.execute("PRAGMA journal_mode=WAL")
-    cursor.close()
-
-
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine) if engine else None
 
 
 class Base(DeclarativeBase):
@@ -24,6 +19,9 @@ class Base(DeclarativeBase):
 
 
 def get_db():
+    if SessionLocal is None:
+        yield None
+        return
     db = SessionLocal()
     try:
         yield db

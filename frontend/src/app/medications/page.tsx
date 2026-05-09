@@ -5,34 +5,24 @@ import { useRouter } from 'next/navigation'
 import { fetchMedications, Medication } from '@/lib/api'
 import MedCard from '@/components/MedCard'
 
-const FALLBACK: Medication[] = [
-  {
-    id: '1', patient_id: '', name: 'Donepezil 10mg', note: "Alzheimer's · once daily",
-    time_str: '08:00', done: true, voice_note_text: 'Took it without fuss this morning.',
-    created_at: '', updated_at: '',
-  },
-  {
-    id: '2', patient_id: '', name: 'Amlodipine 5mg', note: 'Blood pressure',
-    time_str: '08:00', done: true, voice_note_text: null,
-    created_at: '', updated_at: '',
-  },
-  {
-    id: '3', patient_id: '', name: 'Donepezil 10mg', note: 'Evening dose',
-    time_str: '21:00', done: false, voice_note_text: null,
-    created_at: '', updated_at: '',
-  },
-]
-
 export default function MedicationsPage() {
   const router = useRouter()
-  const [meds, setMeds] = useState<Medication[]>(FALLBACK)
+  const [meds, setMeds] = useState<Medication[] | null>(null)
 
   useEffect(() => {
     fetchMedications().then((m) => { if (m) setMeds(m) })
   }, [])
 
   function handleUpdate(updated: Medication) {
-    setMeds((prev) => prev.map((m) => (m.id === updated.id ? updated : m)))
+    setMeds((prev) => (prev ? prev.map((m) => (m.id === updated.id ? updated : m)) : prev))
+  }
+
+  if (!meds) {
+    return (
+      <div className="px-5 py-6 text-stone-400 text-sm">
+        No data yet. Connect the backend or enable mock mode.
+      </div>
+    )
   }
 
   const done = meds.filter((m) => m.done).length

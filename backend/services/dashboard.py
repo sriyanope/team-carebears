@@ -1,7 +1,13 @@
 from datetime import date, datetime, timezone
+
 from sqlalchemy.orm import Session
-from ..repositories import patient as patient_repo, voice_note as vn_repo, medication as med_repo, daily_log as log_repo
-from ..schemas.dashboard import ScheduleSlot, PatientInfo, DashboardMetrics, DashboardResponse
+
+from . import mock_data
+from ..repositories import daily_log as log_repo
+from ..repositories import medication as med_repo
+from ..repositories import patient as patient_repo
+from ..repositories import voice_note as vn_repo
+from ..schemas.dashboard import DashboardMetrics, DashboardResponse, PatientInfo, ScheduleSlot
 
 SLOTS = [
     ("9AM", "9 AM"),
@@ -15,12 +21,16 @@ SLOT_HOURS = {"9AM": 9, "12PM": 12, "3PM": 15, "6PM": 18, "9PM": 21}
 
 
 def get_dashboard(db: Session) -> DashboardResponse:
+    if mock_data.is_enabled():
+        mock = mock_data.get_dashboard()
+        if mock:
+            return mock
     patient = patient_repo.get_first(db)
     today = date.today()
     patient_id = patient.id if patient else ""
     notes = vn_repo.get_by_date_for_patient(db, patient_id, today) if patient else []
     meds = med_repo.get_by_patient(db, patient_id) if patient else []
-    log = log_repo.get_by_date(db, patient_id, today)
+    log = log_repo.get_by_date(db, patient_id, today) if patient else None
 
     meds_done = sum(1 for m in meds if m.done)
     food_avg = 0
