@@ -1,0 +1,16 @@
+.env
+/myenv
+/venv
+__pycache__/
+*.pyc
+# General
+.DS_Store
+.AppleDouble
+.LSOverride
+
+__pycache__/
+*.py[cod]
+*$py.class
+
+AGENTS.md
+CLAUDE.md
