@@ -4,6 +4,7 @@ from typing import Any
 from ..config import settings
 from ..schemas.daily_wellbeing import DailyWellbeingResponse
 from ..schemas.medication import MedicationResponse
+from ..schemas.onboarding import OnboardingResponse
 from ..schemas.report import ReportSummaryResponse
 from ..schemas.voice_note import VoiceNoteResponse
 
@@ -34,6 +35,13 @@ def get_voice_notes() -> list[VoiceNoteResponse] | None:
     if not data:
         return None
     return [VoiceNoteResponse.model_validate(item) for item in data]
+
+
+def get_onboarding() -> OnboardingResponse | None:
+    data = _load_mock_data().get("onboarding")
+    if not data:
+        return None
+    return OnboardingResponse.model_validate(data)
 
 
 def get_medications() -> list[MedicationResponse] | None:

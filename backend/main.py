@@ -4,7 +4,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api import medications, voice_notes, daily_wellbeing, reports
+from .api import medications, voice_notes, daily_wellbeing, reports, onboarding
 from .config import settings
 from .services import transcription as transcription_service
 
@@ -32,3 +32,4 @@ app.include_router(voice_notes.router)
 app.include_router(medications.router)
 app.include_router(daily_wellbeing.router)
 app.include_router(reports.router)
+app.include_router(onboarding.router)

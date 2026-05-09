@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { postOnboarding } from '@/lib/api'
 import {
   OnboardingProfile,
   readOnboardingProfile,
@@ -17,6 +18,8 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
   const [caregiverName, setCaregiverName] = useState('')
   const [patientName, setPatientName] = useState('')
   const [patientAge, setPatientAge] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   useEffect(() => {
     const savedProfile = readOnboardingProfile()
@@ -29,7 +32,7 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
     setStep('onboarding')
   }, [])
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     const age = Number(patientAge)
@@ -41,8 +44,23 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
 
     if (!nextProfile.caregiverName || !nextProfile.patientName || age < 1) return
 
+    setIsSaving(true)
+    setErrorMessage(null)
+
+    const onboarding = await postOnboarding({
+      patient: { name: nextProfile.patientName },
+      caregiver: { name: nextProfile.caregiverName },
+    })
+
+    if (!onboarding) {
+      setIsSaving(false)
+      setErrorMessage('We could not save your care profile right now. Please try again.')
+      return
+    }
+
     saveOnboardingProfile(nextProfile)
     setProfile(nextProfile)
+    setIsSaving(false)
     setStep('welcome')
   }
 
@@ -164,14 +182,20 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
                 />
               </label>
             </div>
+
+            {errorMessage && (
+              <div className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-500">
+                {errorMessage}
+              </div>
+            )}
           </div>
 
           <button
             type="submit"
-            disabled={!canContinue}
+            disabled={!canContinue || isSaving}
             className="mt-6 min-h-14 w-full rounded-2xl bg-blue-500 px-5 py-4 text-lg font-semibold text-white active:scale-[0.99] disabled:bg-stone-100 disabled:text-stone-400"
           >
-            Continue
+            {isSaving ? 'Saving…' : 'Continue'}
           </button>
         </form>
       </main>

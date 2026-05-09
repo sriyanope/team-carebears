@@ -10,7 +10,7 @@ export function readOnboardingProfile(): OnboardingProfile | null {
   if (typeof window === 'undefined') return null
 
   try {
-    const stored = window.localStorage.getItem(ONBOARDING_STORAGE_KEY)
+    const stored = window.sessionStorage.getItem(ONBOARDING_STORAGE_KEY)
     if (!stored) return null
 
     const parsed = JSON.parse(stored) as Partial<OnboardingProfile>
@@ -27,5 +27,5 @@ export function readOnboardingProfile(): OnboardingProfile | null {
 }
 
 export function saveOnboardingProfile(profile: OnboardingProfile): void {
-  window.localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(profile))
+  window.sessionStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(profile))
 }

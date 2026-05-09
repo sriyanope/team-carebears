@@ -1,8 +1,19 @@
+import { readOnboardingProfile } from '@/lib/onboarding'
+
 export type AppLanguage = 'en' | 'zh' | 'ms' | 'ta'
 
 export interface PatientInfo {
   patient_name: string
   caregiver_name: string
+}
+
+export interface OnboardingPayload {
+  patient: {
+    name: string
+  }
+  caregiver: {
+    name: string
+  }
 }
 
 export interface VoiceNote {
@@ -107,11 +118,13 @@ function withBase(path: string): string {
 }
 
 export async function getPatientInfo(): Promise<PatientInfo> {
+  const sessionProfile = readOnboardingProfile()
+
   if (MOCK_MODE) {
     const onboarding = getMockData().onboarding
     return {
-      patient_name: onboarding?.patient?.name || 'Dad',
-      caregiver_name: onboarding?.caregiver?.name || 'Sarah',
+      patient_name: onboarding?.patient?.name || sessionProfile?.patientName || 'Dad',
+      caregiver_name: onboarding?.caregiver?.name || sessionProfile?.caregiverName || 'Sarah',
     }
   }
 
@@ -120,13 +133,42 @@ export async function getPatientInfo(): Promise<PatientInfo> {
     if (res.ok) {
       const data = (await res.json()) as MockOnboardingResponse
       return {
-        patient_name: data.patient?.name || 'Dad',
-        caregiver_name: data.caregiver?.name || 'Sarah',
+        patient_name: data.patient?.name || sessionProfile?.patientName || 'Dad',
+        caregiver_name: data.caregiver?.name || sessionProfile?.caregiverName || 'Sarah',
       }
     }
   } catch {}
 
-  return { patient_name: 'Dad', caregiver_name: 'Sarah' }
+  return {
+    patient_name: sessionProfile?.patientName || 'Dad',
+    caregiver_name: sessionProfile?.caregiverName || 'Sarah',
+  }
+}
+
+export async function postOnboarding(payload: OnboardingPayload): Promise<PatientInfo | null> {
+  if (MOCK_MODE) {
+    return {
+      patient_name: payload.patient.name,
+      caregiver_name: payload.caregiver.name,
+    }
+  }
+
+  try {
+    const res = await fetch(withBase('/api/onboarding'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    if (!res.ok) return null
+
+    const data = (await res.json()) as MockOnboardingResponse
+    return {
+      patient_name: data.patient?.name || payload.patient.name,
+      caregiver_name: data.caregiver?.name || payload.caregiver.name,
+    }
+  } catch {
+    return null
+  }
 }
 
 export async function fetchVoiceNotes(date?: string): Promise<VoiceNote[] | null> {
