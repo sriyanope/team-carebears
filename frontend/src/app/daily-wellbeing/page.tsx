@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import VoiceRecorder from '@/components/VoiceRecorder'
 import WellbeingOption from '@/components/WellbeingOption'
+import { useLanguage } from '@/lib/LanguageContext'
 import {
   Appetite,
   DailyWellbeingRequest,
@@ -36,6 +37,7 @@ const moodOptions: Array<{ value: Mood; label: string; icon: string }> = [
 ]
 
 export default function DailyWellbeingPage() {
+  const { t } = useLanguage()
   const [patientName, setPatientName] = useState('Dad')
   const [sleepPattern, setSleepPattern] = useState<SleepPattern | null>(null)
   const [appetite, setAppetite] = useState<Appetite | null>(null)
@@ -69,11 +71,11 @@ export default function DailyWellbeingPage() {
     setSaving(false)
 
     if (result) {
-      setStatusMessage('Daily wellbeing saved.')
+      setStatusMessage(t('dailyWellbeingSaved'))
       return
     }
 
-    setStatusMessage('Unable to save right now. Please try again.')
+    setStatusMessage(t('unableSave'))
   }
 
   return (
@@ -85,19 +87,25 @@ export default function DailyWellbeingPage() {
         >
           ←
         </Link>
-        <h1 className="flex-1 font-serif text-3xl text-stone-900">Daily Wellbeing</h1>
+        <h1 className="flex-1 font-serif text-3xl text-stone-900">{t('dailyWellbeing')}</h1>
         <LanguageSwitcher />
       </div>
 
       <div className="mt-8 space-y-8">
         <section className="space-y-3">
-          <h2 className="text-lg font-semibold text-stone-900">Has their sleep pattern changed?</h2>
+          <h2 className="text-lg font-semibold text-stone-900">{t('sleepQuestion')}</h2>
           <div className="grid grid-cols-3 gap-3">
             {sleepOptions.map((option) => (
               <WellbeingOption
                 key={option.value}
                 icon={option.icon}
-                label={option.label}
+                label={t(
+                  option.value === 'earlier_sleep_later_wake'
+                    ? 'sleepEarlier'
+                    : option.value === 'later_sleep_earlier_wake'
+                      ? 'sleepLater'
+                      : 'sleepSame',
+                )}
                 selected={sleepPattern === option.value}
                 onSelect={() => setSleepPattern(option.value)}
               />
@@ -106,13 +114,19 @@ export default function DailyWellbeingPage() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-lg font-semibold text-stone-900">Any change in appetite?</h2>
+          <h2 className="text-lg font-semibold text-stone-900">{t('appetiteQuestion')}</h2>
           <div className="grid grid-cols-3 gap-3">
             {appetiteOptions.map((option) => (
               <WellbeingOption
                 key={option.value}
                 icon={option.icon}
-                label={option.label}
+                label={t(
+                  option.value === 'eating_less'
+                    ? 'appetiteLess'
+                    : option.value === 'eating_more'
+                      ? 'appetiteMore'
+                      : 'appetiteSame',
+                )}
                 selected={appetite === option.value}
                 onSelect={() => setAppetite(option.value)}
               />
@@ -121,13 +135,23 @@ export default function DailyWellbeingPage() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-lg font-semibold text-stone-900">{patientName}&apos;s mood?</h2>
+          <h2 className="text-lg font-semibold text-stone-900">{t('moodQuestion', { name: patientName })}</h2>
           <div className="grid grid-cols-5 gap-2">
             {moodOptions.map((option) => (
               <WellbeingOption
                 key={option.value}
                 icon={option.icon}
-                label={option.label}
+                label={t(
+                  option.value === 'happy'
+                    ? 'moodHappy'
+                    : option.value === 'ok'
+                      ? 'moodOk'
+                      : option.value === 'neutral'
+                        ? 'moodNeutral'
+                        : option.value === 'sad'
+                          ? 'moodSad'
+                          : 'moodUpset',
+                )}
                 selected={mood === option.value}
                 onSelect={() => setMood(option.value)}
               />
@@ -137,23 +161,23 @@ export default function DailyWellbeingPage() {
 
         <section className="space-y-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-stone-400">Additional notes</p>
-            <h2 className="mt-2 text-lg font-semibold text-stone-900">Anything else to add?</h2>
+            <p className="text-xs uppercase tracking-[0.18em] text-stone-400">{t('additionalNotes')}</p>
+            <h2 className="mt-2 text-lg font-semibold text-stone-900">{t('anythingElse')}</h2>
           </div>
 
           <div className="rounded-2xl border border-stone-100 bg-white p-4 shadow-sm">
             <VoiceRecorder
               noteType="daily_wellbeing"
               variant="inline"
-              idleLabel="Record an optional note"
-              successLabel="Additional note saved."
+              idleLabel={t('recordOptionalNote')}
+              successLabel={t('additionalNoteSaved')}
               onSave={setVoiceNote}
             />
           </div>
 
           {voiceNote && (
             <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
-              <p className="text-sm font-semibold text-blue-700">Voice note attached</p>
+              <p className="text-sm font-semibold text-blue-700">{t('voiceNoteAttached')}</p>
               <p className="mt-2 text-sm leading-relaxed text-stone-700">{voiceNote.transcript}</p>
             </div>
           )}
@@ -164,7 +188,7 @@ export default function DailyWellbeingPage() {
         {statusMessage && (
           <div
             className={`rounded-2xl p-4 text-sm ${
-              statusMessage.includes('Unable')
+              statusMessage === t('unableSave')
                 ? 'bg-rose-50 text-rose-500'
                 : 'bg-sage-50 text-sage-500'
             }`}
@@ -177,7 +201,7 @@ export default function DailyWellbeingPage() {
           disabled={!canSave}
           className="w-full rounded-2xl bg-blue-500 px-5 py-4 font-semibold text-white disabled:cursor-not-allowed disabled:bg-blue-100"
         >
-          {saving ? 'Saving…' : 'Save'}
+          {saving ? t('saving') : t('save')}
         </button>
       </div>
     </main>

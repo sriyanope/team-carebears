@@ -4,9 +4,10 @@ import { useEffect, useRef, useState } from 'react'
 import { LANGUAGE_OPTIONS, useLanguage } from '@/lib/LanguageContext'
 
 export default function LanguageSwitcher() {
-  const { language, setLanguage } = useLanguage()
+  const { language, setLanguage, t } = useLanguage()
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const selectedLanguage = LANGUAGE_OPTIONS.find((option) => option.code === language) ?? LANGUAGE_OPTIONS[0]
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -26,14 +27,15 @@ export default function LanguageSwitcher() {
         className="flex min-h-12 items-center gap-2 rounded-2xl border border-stone-100 bg-white px-4 py-3 text-sm font-semibold text-stone-900 shadow-sm"
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-label={t('language')}
       >
-        <span>{language.toUpperCase()}</span>
+        <span>{selectedLanguage.nativeLabel}</span>
         <span className="text-stone-400">▾</span>
       </button>
 
       {open && (
         <div className="absolute right-0 top-full z-10 mt-2 w-44 rounded-2xl border border-stone-100 bg-white p-2 shadow-[0_12px_30px_rgba(30,28,26,0.08)]">
-          <ul className="space-y-1" role="listbox" aria-label="Select language">
+          <ul className="space-y-1" role="listbox" aria-label={t('language')}>
             {LANGUAGE_OPTIONS.map((option) => {
               const selected = option.code === language
               return (
@@ -49,7 +51,7 @@ export default function LanguageSwitcher() {
                     role="option"
                     aria-selected={selected}
                   >
-                    <span>{option.label}</span>
+                    <span>{option.nativeLabel}</span>
                     <span className="text-xs font-semibold">{option.code.toUpperCase()}</span>
                   </button>
                 </li>

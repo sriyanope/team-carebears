@@ -23,7 +23,7 @@ export default function VoiceRecorder({
   onSave,
 }: Props) {
   const { isRecording, audioBlob, analyserNode, duration, start, stop, reset } = useAudioRecorder()
-  const { language } = useLanguage()
+  const { language, t } = useLanguage()
   const [state, setState] = useState<RecorderState>('idle')
   const [transcript, setTranscript] = useState('')
   const [savedNote, setSavedNote] = useState<VoiceNote | null>(null)
@@ -121,6 +121,7 @@ export default function VoiceRecorder({
   const recordingButtonClass = isHero
     ? `${baseButtonClass} mx-auto rounded-full bg-rose-500 shadow-[0_18px_40px_rgba(192,57,43,0.18)]`
     : `${baseButtonClass} w-full rounded-2xl bg-rose-500 px-5 py-4`
+  const resolvedSuccessLabel = successLabel === 'Saved successfully' ? t('savedSuccessfully') : successLabel
 
   const savedAt = savedNote
     ? new Date(savedNote.created_at).toLocaleTimeString('en-SG', {
@@ -154,7 +155,7 @@ export default function VoiceRecorder({
         <div className="flex flex-col items-center justify-center gap-2">
           <canvas ref={canvasRef} width={72} height={36} className="opacity-90" />
           <span className={`${isHero ? 'text-lg' : 'text-sm'} font-semibold`}>
-            {formattedDuration} · Tap to stop
+            {formattedDuration} · {t('tapToStop')}
           </span>
         </div>
       </button>
@@ -165,8 +166,8 @@ export default function VoiceRecorder({
     return (
       <div className="space-y-3 rounded-2xl border border-blue-100 bg-blue-50 p-5 text-center">
         <div className="mx-auto h-10 w-10 rounded-full border-4 border-blue-500 border-t-transparent animate-spin" />
-        <p className="font-semibold text-blue-700">Transcribing…</p>
-        <p className="text-sm text-stone-400">Saving the note in {language.toUpperCase()}.</p>
+        <p className="font-semibold text-blue-700">{t('transcribing')}</p>
+        <p className="text-sm text-stone-400">{t('savingNoteIn', { language: language.toUpperCase() })}</p>
       </div>
     )
   }
@@ -174,8 +175,8 @@ export default function VoiceRecorder({
   if (state === 'success') {
     return (
       <div className="space-y-2 rounded-2xl border border-sage-50 bg-sage-50 p-5 text-center">
-        <p className="text-lg font-semibold text-sage-500">Saved ✓</p>
-        <p className="text-sm text-stone-700">{successLabel}</p>
+        <p className="text-lg font-semibold text-sage-500">{t('savedCheck')}</p>
+        <p className="text-sm text-stone-700">{resolvedSuccessLabel}</p>
       </div>
     )
   }
@@ -183,9 +184,9 @@ export default function VoiceRecorder({
   return (
     <div className="space-y-4 rounded-2xl border border-stone-100 bg-white p-5">
       <div className="space-y-2">
-        <p className="text-xs uppercase tracking-[0.18em] text-stone-400">Transcript</p>
+        <p className="text-xs uppercase tracking-[0.18em] text-stone-400">{t('transcript')}</p>
         <p className="text-base leading-relaxed text-stone-700">{transcript}</p>
-        {savedAt && <p className="text-sm text-stone-400">Recorded at {savedAt}</p>}
+        {savedAt && <p className="text-sm text-stone-400">{t('recordedAt', { time: savedAt })}</p>}
       </div>
 
       <div className="flex gap-3">
@@ -193,13 +194,13 @@ export default function VoiceRecorder({
           onClick={handleReset}
           className="flex-1 rounded-xl border border-stone-100 px-4 py-3 text-sm font-medium text-stone-700"
         >
-          Discard
+          {t('discard')}
         </button>
         <button
           onClick={handleConfirmSave}
           className="flex-1 rounded-xl bg-blue-500 px-4 py-3 text-sm font-semibold text-white"
         >
-          Save
+          {t('save')}
         </button>
       </div>
     </div>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Medication, patchMedication, postVoiceNote } from '@/lib/api'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
+import { useLanguage } from '@/lib/LanguageContext'
 
 interface Props {
   med: Medication
@@ -19,6 +20,7 @@ function timeBadgeStyle(med: Medication): string {
 }
 
 export default function MedCard({ med, onUpdate }: Props) {
+  const { language, t } = useLanguage()
   const [recording, setRecording] = useState(false)
   const [transcribing, setTranscribing] = useState(false)
   const { isRecording, audioBlob, start, stop, reset } = useAudioRecorder()
@@ -42,7 +44,7 @@ export default function MedCard({ med, onUpdate }: Props) {
     async function onBlobReady() {
       if (!audioBlob) return
       setTranscribing(true)
-      const note = await postVoiceNote(audioBlob, 'medication', undefined, med.id)
+      const note = await postVoiceNote(audioBlob, 'medication', language, med.id)
       if (note) {
         const updated = await patchMedication(med.id, med.done, note.transcript)
         if (updated) onUpdate(updated)
@@ -93,21 +95,21 @@ export default function MedCard({ med, onUpdate }: Props) {
         ) : transcribing ? (
           <div className="flex items-center gap-2 text-stone-400 text-sm">
             <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-            Transcribing…
+            {t('transcribing')}
           </div>
         ) : isRecording ? (
           <button
             onClick={handleStopRecord}
             className="w-full h-12 rounded-xl bg-rose-50 text-rose-500 text-sm font-medium"
           >
-            🔴 Recording… tap to stop
+            {t('recordingTapToStop')}
           </button>
         ) : (
           <button
             onClick={handleStartRecord}
             className="w-full h-12 rounded-xl border border-dashed border-stone-200 text-stone-400 text-sm"
           >
-            🎙️ Add voice observation
+            {t('addVoiceObservation')}
           </button>
         )}
       </div>

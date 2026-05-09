@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { postOnboarding } from '@/lib/api'
+import { useLanguage } from '@/lib/LanguageContext'
 import {
   OnboardingProfile,
   readOnboardingProfile,
@@ -13,6 +14,7 @@ type GateStep = 'checking' | 'onboarding' | 'welcome' | 'ready'
 
 export default function OnboardingGate({ children }: { children: React.ReactNode }) {
   const router = useRouter()
+  const { t } = useLanguage()
   const [step, setStep] = useState<GateStep>('checking')
   const [profile, setProfile] = useState<OnboardingProfile | null>(null)
   const [caregiverName, setCaregiverName] = useState('')
@@ -54,7 +56,7 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
 
     if (!onboarding) {
       setIsSaving(false)
-      setErrorMessage('We could not save your care profile right now. Please try again.')
+      setErrorMessage(t('onboardingSaveError'))
       return
     }
 
@@ -82,24 +84,24 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
               👋
             </div>
             <div className="space-y-3">
-              <p className="text-xs font-medium uppercase tracking-widest text-stone-400">You are all set</p>
+              <p className="text-xs font-medium uppercase tracking-widest text-stone-400">{t('allSet')}</p>
               <h1 className="font-serif text-[42px] leading-none text-stone-900">
-                Hi, {profile.caregiverName}.
+                {t('hiName', { name: profile.caregiverName })}
               </h1>
               <p className="text-lg leading-relaxed text-stone-700">
-                SilverPulse will help you keep track of {profile.patientName}'s care, so the important changes are easier to see and share.
+                {t('welcomeMessage', { name: profile.patientName })}
               </p>
             </div>
           </div>
 
           <div className="space-y-3">
             <div className="rounded-2xl border border-stone-100 bg-blue-50 p-4">
-              <p className="text-xs font-medium uppercase tracking-widest text-blue-700">Care profile</p>
+              <p className="text-xs font-medium uppercase tracking-widest text-blue-700">{t('careProfile')}</p>
               <div className="mt-3 flex items-center gap-3">
                 <span className="text-4xl">🧓</span>
                 <div>
                   <p className="text-xl font-semibold text-stone-900">{profile.patientName}</p>
-                  <p className="text-stone-400">{profile.patientAge} years old</p>
+                  <p className="text-stone-400">{t('yearsOld', { age: profile.patientAge })}</p>
                 </div>
               </div>
             </div>
@@ -108,7 +110,7 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
               onClick={enterApp}
               className="min-h-14 w-full rounded-2xl bg-blue-500 px-5 py-4 text-lg font-semibold text-white active:scale-[0.99]"
             >
-              Start today's care
+              {t('startCare')}
             </button>
           </div>
         </section>
@@ -128,10 +130,10 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
                 🫶
               </div>
               <div className="space-y-2">
-                <p className="text-xs font-medium uppercase tracking-widest text-stone-400">Welcome to SilverPulse</p>
-                <h1 className="font-serif text-[42px] leading-none text-stone-900">Set up care</h1>
+                <p className="text-xs font-medium uppercase tracking-widest text-stone-400">{t('welcomeToSilverPulse')}</p>
+                <h1 className="font-serif text-[42px] leading-none text-stone-900">{t('setupCare')}</h1>
                 <p className="text-lg leading-relaxed text-stone-700">
-                  Add the names you use every day. This keeps each check-in personal and easy to scan.
+                  {t('onboardingIntro')}
                 </p>
               </div>
             </div>
@@ -140,7 +142,7 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
               <label className="block rounded-2xl border border-stone-100 bg-white p-4">
                 <span className="mb-3 flex items-center gap-3 text-lg font-semibold text-stone-900">
                   <span className="text-3xl">🙂</span>
-                  Your name
+                  {t('yourName')}
                 </span>
                 <input
                   value={caregiverName}
@@ -154,7 +156,7 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
               <label className="block rounded-2xl border border-stone-100 bg-white p-4">
                 <span className="mb-3 flex items-center gap-3 text-lg font-semibold text-stone-900">
                   <span className="text-3xl">🧓</span>
-                  Patient's name
+                  {t('patientName')}
                 </span>
                 <input
                   value={patientName}
@@ -168,7 +170,7 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
               <label className="block rounded-2xl border border-stone-100 bg-white p-4">
                 <span className="mb-3 flex items-center gap-3 text-lg font-semibold text-stone-900">
                   <span className="text-3xl">🎂</span>
-                  Patient's age
+                  {t('patientAge')}
                 </span>
                 <input
                   value={patientAge}
@@ -195,7 +197,7 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
             disabled={!canContinue || isSaving}
             className="mt-6 min-h-14 w-full rounded-2xl bg-blue-500 px-5 py-4 text-lg font-semibold text-white active:scale-[0.99] disabled:bg-stone-100 disabled:text-stone-400"
           >
-            {isSaving ? 'Saving…' : 'Continue'}
+            {isSaving ? t('saving') : t('continue')}
           </button>
         </form>
       </main>

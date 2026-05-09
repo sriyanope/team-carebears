@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { fetchMedications, Medication } from '@/lib/api'
 import MedCard from '@/components/MedCard'
+import { useLanguage } from '@/lib/LanguageContext'
 
 export default function MedicationsPage() {
   const router = useRouter()
+  const { t } = useLanguage()
   const [meds, setMeds] = useState<Medication[] | null>(null)
 
   useEffect(() => {
@@ -20,7 +22,7 @@ export default function MedicationsPage() {
   if (!meds) {
     return (
       <div className="px-5 py-6 text-stone-400 text-sm">
-        No data yet. Connect the backend or enable mock mode.
+        {t('noData')}
       </div>
     )
   }
@@ -38,7 +40,7 @@ export default function MedicationsPage() {
         >
           ←
         </button>
-        <h1 className="text-xl font-semibold text-stone-900 flex-1">Medications</h1>
+        <h1 className="text-xl font-semibold text-stone-900 flex-1">{t('medication')}</h1>
         <span
           className={`text-sm font-semibold px-3 py-1 rounded-full ${
             allDone ? 'bg-sage-50 text-sage-500' : 'bg-blue-50 text-blue-500'
@@ -57,7 +59,7 @@ export default function MedicationsPage() {
 
       {/* Footer */}
       <p className="text-xs text-stone-400 text-center leading-relaxed px-4">
-        Missed doses and voice notes are included in the AI doctor report
+        {t('medsFooter')}
       </p>
     </div>
   )

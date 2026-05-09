@@ -3,11 +3,12 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { VoiceNote, fetchVoiceNotes } from '@/lib/api'
+import { TranslationKey, useLanguage } from '@/lib/LanguageContext'
 
-const sourceLabels: Record<string, string> = {
-  adhoc: 'Ad-hoc',
-  daily_wellbeing: 'Daily Wellbeing',
-  medication: 'Medication',
+const sourceLabelKeys: Record<string, TranslationKey> = {
+  adhoc: 'adhoc',
+  daily_wellbeing: 'dailyWellbeing',
+  medication: 'medication',
 }
 
 function formatTimestamp(value: string) {
@@ -22,6 +23,7 @@ function formatTimestamp(value: string) {
 }
 
 export default function VoiceHistoryPage() {
+  const { t } = useLanguage()
   const [notes, setNotes] = useState<VoiceNote[]>([])
 
   useEffect(() => {
@@ -43,7 +45,7 @@ export default function VoiceHistoryPage() {
         >
           ←
         </Link>
-        <h1 className="font-serif text-3xl text-stone-900">Voice History</h1>
+        <h1 className="font-serif text-3xl text-stone-900">{t('voiceHistory')}</h1>
       </div>
 
       <div className="mt-8 space-y-4 pb-6">
@@ -51,7 +53,7 @@ export default function VoiceHistoryPage() {
           <div className="rounded-2xl border border-stone-100 bg-white p-6 text-center shadow-sm">
             <p className="text-xl">🎙️</p>
             <p className="mt-3 text-base text-stone-700">
-              No voice notes yet. Use the microphone on the home page to record.
+              {t('noVoiceNotesYet')}
             </p>
           </div>
         ) : (
@@ -60,7 +62,7 @@ export default function VoiceHistoryPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <p className="text-sm text-stone-400">{formatTimestamp(note.created_at)}</p>
                 <span className="rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-500">
-                  {sourceLabels[note.note_type] ?? 'Ad-hoc'}
+                  {t(sourceLabelKeys[note.note_type] ?? 'adhoc')}
                 </span>
               </div>
               <p className="mt-4 whitespace-pre-wrap text-base leading-relaxed text-stone-700">{note.transcript}</p>
