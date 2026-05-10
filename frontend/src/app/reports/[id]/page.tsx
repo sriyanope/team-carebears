@@ -87,6 +87,7 @@ export default function ReportDetailPage() {
       ) : (
         <div className="mt-8 space-y-5 pb-8">
           <section className="rounded-2xl border border-stone-100 bg-white p-6 shadow-sm">
+<<<<<<< Updated upstream
             <h2 className="text-2xl font-semibold text-stone-900">Summary</h2>
             <p className="mt-4 text-[20px] leading-[1.75] text-stone-700">{report.summary}</p>
           </section>
