@@ -1,5 +1,7 @@
 from datetime import date, datetime, timezone
 
+from google.cloud.firestore_v1.base_query import FieldFilter
+
 from ..firebase_client import get_firestore_client, normalize_timestamp
 from ..models.voice_note import VoiceNote
 
@@ -43,7 +45,7 @@ def get_all(patient_id: str) -> list[VoiceNote]:
     client = get_firestore_client()
     docs = (
         client.collection(COLLECTION)
-        .where("patient_id", "==", patient_id)
+        .where(filter=FieldFilter("patient_id", "==", patient_id))
         .order_by("created_at", direction="DESCENDING")
         .stream()
     )
@@ -61,8 +63,8 @@ def get_by_date(patient_id: str, target_date: date) -> list[VoiceNote]:
     client = get_firestore_client()
     docs = (
         client.collection(COLLECTION)
-        .where("patient_id", "==", patient_id)
-        .where("date", "==", target_date.isoformat())
+        .where(filter=FieldFilter("patient_id", "==", patient_id))
+        .where(filter=FieldFilter("date", "==", target_date.isoformat()))
         .stream()
     )
     notes = []
@@ -80,9 +82,7 @@ def get_by_date_range(patient_id: str, start_date: date, end_date: date) -> list
     client = get_firestore_client()
     docs = (
         client.collection(COLLECTION)
-        .where("patient_id", "==", patient_id)
-        .where("date", ">=", start_date.isoformat())
-        .where("date", "<=", end_date.isoformat())
+        .where(filter=FieldFilter("patient_id", "==", patient_id))
         .stream()
     )
     notes = []
@@ -91,7 +91,10 @@ def get_by_date_range(patient_id: str, start_date: date, end_date: date) -> list
         data["id"] = doc.id
         data["created_at"] = normalize_timestamp(data.get("created_at"))
         data["updated_at"] = normalize_timestamp(data.get("updated_at"))
-        notes.append(VoiceNote(**data))
+        note = VoiceNote(**data)
+        note_date = note.created_at.date() if note.created_at else None
+        if note_date and start_date <= note_date <= end_date:
+            notes.append(note)
     notes.sort(key=lambda n: n.created_at or datetime.min.replace(tzinfo=timezone.utc))
     return notes
 

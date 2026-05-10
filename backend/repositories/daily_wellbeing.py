@@ -1,5 +1,7 @@
 from datetime import date, datetime, timezone
 
+from google.cloud.firestore_v1.base_query import FieldFilter
+
 from ..firebase_client import get_firestore_client, normalize_timestamp
 from ..models.daily_wellbeing import DailyWellbeing
 
@@ -31,8 +33,8 @@ def get_by_date(patient_id: str, target_date: date) -> list[DailyWellbeing]:
     client = get_firestore_client()
     docs = (
         client.collection(COLLECTION)
-        .where("patient_id", "==", patient_id)
-        .where("date", "==", str(target_date))
+        .where(filter=FieldFilter("patient_id", "==", patient_id))
+        .where(filter=FieldFilter("date", "==", str(target_date)))
         .stream()
     )
     entries = []
@@ -49,9 +51,7 @@ def get_by_date_range(patient_id: str, start_date: date, end_date: date) -> list
     client = get_firestore_client()
     docs = (
         client.collection(COLLECTION)
-        .where("patient_id", "==", patient_id)
-        .where("date", ">=", str(start_date))
-        .where("date", "<=", str(end_date))
+        .where(filter=FieldFilter("patient_id", "==", patient_id))
         .stream()
     )
     entries = []
@@ -60,7 +60,9 @@ def get_by_date_range(patient_id: str, start_date: date, end_date: date) -> list
         data["id"] = doc.id
         data["created_at"] = normalize_timestamp(data.get("created_at"))
         data["updated_at"] = normalize_timestamp(data.get("updated_at"))
-        entries.append(DailyWellbeing(**data))
+        entry = DailyWellbeing(**data)
+        if start_date <= entry.date <= end_date:
+            entries.append(entry)
     entries.sort(key=lambda e: e.date)
     return entries
 
@@ -69,7 +71,7 @@ def get_all(patient_id: str) -> list[DailyWellbeing]:
     client = get_firestore_client()
     docs = (
         client.collection(COLLECTION)
-        .where("patient_id", "==", patient_id)
+        .where(filter=FieldFilter("patient_id", "==", patient_id))
         .order_by("date", direction="DESCENDING")
         .stream()
     )
