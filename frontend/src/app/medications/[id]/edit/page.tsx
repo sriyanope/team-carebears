@@ -12,6 +12,30 @@ import {
 import AppIcon from '@/components/AppIcon'
 import { fetchMedication, updateMedicationDetails } from '@/lib/api'
 
+function formatApiDate(value: string | null): string {
+  if (!value) return ''
+
+  const [year, month, day] = value.split('-')
+  if (!year || !month || !day) return value
+  return `${day}/${month}/${year}`
+}
+
+function parseDisplayDate(value: string): string | null | undefined {
+  if (!value.trim()) return undefined
+
+  const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
+  if (!match) return null
+
+  const [, day, month, year] = match
+  const date = new Date(Number(year), Number(month) - 1, Number(day))
+  const isValid =
+    date.getFullYear() === Number(year) &&
+    date.getMonth() === Number(month) - 1 &&
+    date.getDate() === Number(day)
+
+  return isValid ? `${year}-${month}-${day}` : null
+}
+
 export default function EditMedicationPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
@@ -36,12 +60,14 @@ export default function EditMedicationPage() {
       setDosage(medication.dosage ?? '')
       setFrequencyPerWeek(String(medication.frequency_per_week ?? 7))
       setSpecialInstructions(medication.special_instructions ?? '')
-      setExpiryDate(medication.expiry_date ?? '')
+      setExpiryDate(formatApiDate(medication.expiry_date))
       setLoading(false)
     })
   }, [params.id])
 
-  const canSave = name.trim() && dosage.trim() && Number(frequencyPerWeek) > 0 && !saving
+  const parsedExpiryDate = parseDisplayDate(expiryDate)
+  const hasValidExpiryDate = !expiryDate.trim() || parsedExpiryDate !== null
+  const canSave = name.trim() && dosage.trim() && Number(frequencyPerWeek) > 0 && hasValidExpiryDate && !saving
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -55,7 +81,7 @@ export default function EditMedicationPage() {
       dosage: dosage.trim(),
       frequency_per_week: Number(frequencyPerWeek),
       special_instructions: specialInstructions.trim() || null,
-      expiry_date: expiryDate || null,
+      expiry_date: parsedExpiryDate || null,
     })
 
     setSaving(false)
@@ -164,8 +190,13 @@ export default function EditMedicationPage() {
               value={expiryDate}
               onChange={(event) => setExpiryDate(event.target.value)}
               className="min-h-14 w-full rounded-2xl border border-stone-100 bg-stone-50 px-4 text-lg text-stone-900 outline-none focus:border-blue-500"
-              type="date"
+              placeholder="dd/mm/yyyy"
+              inputMode="numeric"
+              maxLength={10}
             />
+            {!hasValidExpiryDate && (
+              <p className="mt-2 text-sm text-rose-500">Use dd/mm/yyyy, for example 31/12/2026.</p>
+            )}
           </label>
         </div>
 

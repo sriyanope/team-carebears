@@ -79,6 +79,9 @@ const TRANSLATIONS = {
     moodNeutral: 'Neutral',
     moodSad: 'Sad',
     moodUpset: 'Upset',
+    voicehistory: 'Voice History',
+    voicenote : 'Voice Note',
+    voicedesc : 'Review previous recordings and transcripts.'
   },
   zh: {
     language: 'Language',
@@ -146,6 +149,9 @@ const TRANSLATIONS = {
     moodNeutral: '\u4e00\u822c',
     moodSad: '\u96be\u8fc7',
     moodUpset: '\u4e0d\u5b89',
+    voicehistory: '讲述历史',
+    voicenote : '讲述',
+    voicedesc : '看看之前的录音和文字记录'
   },
   ms: {
     language: 'Bahasa',
@@ -213,6 +219,9 @@ const TRANSLATIONS = {
     moodNeutral: 'Neutral',
     moodSad: 'Sedih',
     moodUpset: 'Resah',
+    voicehistory: 'Sejarah Suara',
+    voicenote: 'Nota Suara',
+    voicedesc: 'Lihat rekod dan transkrip sebelumnya',
   },
   ta: {
     language: 'Language',
@@ -280,6 +289,9 @@ const TRANSLATIONS = {
     moodNeutral: '\u0ba8\u0b9f\u0bc1\u0ba8\u0bbf\u0bb2\u0bc8',
     moodSad: '\u0bb5\u0bb0\u0bc1\u0ba4\u0bcd\u0ba4\u0bae\u0bcd',
     moodUpset: '\u0b95\u0bb5\u0bb2\u0bc8',
+    voicehistory: 'பேச்சு வரலாறு',
+    voicenote: 'பேச்சு குறிப்பு',
+    voicedesc: 'முந்தைய ஒலியையும் உரை பதிவுகளையும் பாருங்கள்',
   },
 } as const
 

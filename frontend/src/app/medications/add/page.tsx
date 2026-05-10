@@ -12,6 +12,22 @@ import {
 import AppIcon from '@/components/AppIcon'
 import { postMedication } from '@/lib/api'
 
+function parseDisplayDate(value: string): string | null | undefined {
+  if (!value.trim()) return undefined
+
+  const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
+  if (!match) return null
+
+  const [, day, month, year] = match
+  const date = new Date(Number(year), Number(month) - 1, Number(day))
+  const isValid =
+    date.getFullYear() === Number(year) &&
+    date.getMonth() === Number(month) - 1 &&
+    date.getDate() === Number(day)
+
+  return isValid ? `${year}-${month}-${day}` : null
+}
+
 export default function AddMedicationPage() {
   const router = useRouter()
   const [name, setName] = useState('')
@@ -22,7 +38,9 @@ export default function AddMedicationPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const canSave = name.trim() && dosage.trim() && Number(frequencyPerWeek) > 0 && !saving
+  const parsedExpiryDate = parseDisplayDate(expiryDate)
+  const hasValidExpiryDate = !expiryDate.trim() || parsedExpiryDate !== null
+  const canSave = name.trim() && dosage.trim() && Number(frequencyPerWeek) > 0 && hasValidExpiryDate && !saving
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -36,7 +54,7 @@ export default function AddMedicationPage() {
       dosage: dosage.trim(),
       frequency_per_week: Number(frequencyPerWeek),
       special_instructions: specialInstructions.trim() || undefined,
-      expiry_date: expiryDate || undefined,
+      expiry_date: parsedExpiryDate || undefined,
     })
 
     setSaving(false)
@@ -137,8 +155,13 @@ export default function AddMedicationPage() {
               value={expiryDate}
               onChange={(event) => setExpiryDate(event.target.value)}
               className="min-h-14 w-full rounded-2xl border border-stone-100 bg-stone-50 px-4 text-lg text-stone-900 outline-none focus:border-blue-500"
-              type="date"
+              placeholder="dd/mm/yyyy"
+              inputMode="numeric"
+              maxLength={10}
             />
+            {!hasValidExpiryDate && (
+              <p className="mt-2 text-sm text-rose-500">Use dd/mm/yyyy, for example 31/12/2026.</p>
+            )}
           </label>
         </div>
 

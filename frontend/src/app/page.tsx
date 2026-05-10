@@ -60,11 +60,11 @@ export default function Dashboard() {
               href="/voice-history"
               className="block rounded-2xl border border-stone-100 bg-white p-5 text-left shadow-sm transition-colors hover:border-blue-100 active:scale-[0.99]"
             >
-              <p className="text-xs uppercase tracking-[0.18em] text-stone-400">Voice notes</p>
+              <p className="text-xs uppercase tracking-[0.18em] text-stone-400">{t('voicenote')}</p>
               <div className="mt-3 flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-2xl font-medium text-stone-900">Voice history</p>
-                  <p className="mt-1 text-sm text-stone-400">Review previous recordings and transcripts.</p>
+                  <p className="text-2xl font-medium text-stone-900">{t('voicehistory')}</p>
+                  <p className="mt-1 text-sm text-stone-400">{t('voicedesc')}</p>
                 </div>
                 <span className="text-blue-500">
                   <AppIcon icon={Clock04Icon} size={32} />
