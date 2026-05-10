@@ -140,7 +140,7 @@ interface MockData {
   reports?: ReportDetail[]
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') ?? ''
+const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') ?? 'http://127.0.0.1:8000'
 const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE === 'true' || process.env.NEXT_PUBLIC_MOCK_MODE === '1'
 const MOCK_DATA_JSON = process.env.NEXT_PUBLIC_MOCK_DATA_JSON?.trim() ?? ''
 
