@@ -5,7 +5,7 @@ from ..config import settings
 from ..schemas.daily_wellbeing import DailyWellbeingResponse
 from ..schemas.medication import MedicationResponse
 from ..schemas.onboarding import OnboardingResponse
-from ..schemas.report import ReportSummaryResponse
+from ..schemas.report import ReportDetailResponse
 from ..schemas.voice_note import VoiceNoteResponse
 
 _mock_cache: dict[str, Any] | None = None
@@ -58,8 +58,16 @@ def get_daily_wellbeing() -> list[DailyWellbeingResponse] | None:
     return [DailyWellbeingResponse.model_validate(item) for item in data]
 
 
-def get_reports() -> list[ReportSummaryResponse] | None:
+def get_reports() -> list[ReportDetailResponse] | None:
     data = _load_mock_data().get("reports")
     if not data:
         return None
-    return [ReportSummaryResponse.model_validate(item) for item in data]
+    return [ReportDetailResponse.model_validate(item) for item in data]
+
+
+def get_report(report_id: str) -> ReportDetailResponse | None:
+    reports = get_reports() or []
+    for report in reports:
+        if report.id == report_id:
+            return report
+    return None

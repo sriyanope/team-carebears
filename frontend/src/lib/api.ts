@@ -76,7 +76,7 @@ export interface DailyWellbeingRequest {
 }
 
 export interface ReportFlag {
-  severity: 'red' | 'amber'
+  severity?: string
   text: string
 }
 
@@ -93,6 +93,11 @@ export interface ReportDetail extends ReportSummary {
   flags: ReportFlag[]
 }
 
+interface ReportContext {
+  caregiver_name: string
+  patient_name: string
+}
+
 interface MockOnboardingResponse {
   patient?: {
     name?: string
@@ -107,7 +112,7 @@ interface MockData {
   voice_notes?: VoiceNote[]
   medications?: Medication[]
   daily_wellbeing?: DailyWellbeingEntry[]
-  reports?: ReportSummary[]
+  reports?: ReportDetail[]
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') ?? ''
@@ -129,6 +134,31 @@ function getMockData(): MockData {
 
 function withBase(path: string): string {
   return API_BASE ? `${API_BASE}${path}` : path
+}
+
+function getReportContext(): ReportContext | null {
+  const profile = readOnboardingProfile()
+  if (!profile) return null
+
+  const caregiverName = profile.caregiverName.trim()
+  const patientName = profile.patientName.trim()
+  if (!caregiverName || !patientName) return null
+
+  return {
+    caregiver_name: caregiverName,
+    patient_name: patientName,
+  }
+}
+
+function withQuery(path: string, params: Record<string, string | null | undefined>): string {
+  const query = new URLSearchParams()
+
+  for (const [key, value] of Object.entries(params)) {
+    if (value) query.set(key, value)
+  }
+
+  const queryString = query.toString()
+  return queryString ? `${path}?${queryString}` : path
 }
 
 export async function getPatientInfo(): Promise<PatientInfo> {
@@ -426,7 +456,15 @@ export async function fetchReports(): Promise<ReportSummary[] | null> {
   if (MOCK_MODE) return getMockData().reports ?? null
 
   try {
-    const res = await fetch(withBase('/api/reports'))
+    const context = getReportContext()
+    const res = await fetch(
+      withBase(
+        withQuery('/api/reports', {
+          caregiver_name: context?.caregiver_name,
+          patient_name: context?.patient_name,
+        }),
+      ),
+    )
     if (!res.ok) return null
     return (await res.json()) as ReportSummary[]
   } catch {
@@ -435,13 +473,28 @@ export async function fetchReports(): Promise<ReportSummary[] | null> {
 }
 
 export async function postReport(startDate: string, endDate: string): Promise<ReportDetail | null> {
-  if (MOCK_MODE) return null
+  if (MOCK_MODE) {
+    const report = getMockData().reports?.[0]
+    if (!report) return null
+    return {
+      ...report,
+      start_date: startDate,
+      end_date: endDate,
+      generated_at: new Date().toISOString(),
+    }
+  }
 
   try {
+    const context = getReportContext()
     const res = await fetch(withBase('/api/reports'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ start_date: startDate, end_date: endDate }),
+      body: JSON.stringify({
+        start_date: startDate,
+        end_date: endDate,
+        caregiver_name: context?.caregiver_name,
+        patient_name: context?.patient_name,
+      }),
     })
     if (!res.ok) return null
     return (await res.json()) as ReportDetail
@@ -451,10 +504,21 @@ export async function postReport(startDate: string, endDate: string): Promise<Re
 }
 
 export async function fetchReport(id: string): Promise<ReportDetail | null> {
-  if (MOCK_MODE) return null
+  if (MOCK_MODE) {
+    const reports = getMockData().reports ?? []
+    return reports.find((report) => report.id === id) ?? null
+  }
 
   try {
-    const res = await fetch(withBase(`/api/reports/${id}`))
+    const context = getReportContext()
+    const res = await fetch(
+      withBase(
+        withQuery(`/api/reports/${id}`, {
+          caregiver_name: context?.caregiver_name,
+          patient_name: context?.patient_name,
+        }),
+      ),
+    )
     if (!res.ok) return null
     return (await res.json()) as ReportDetail
   } catch {
