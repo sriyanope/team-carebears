@@ -2,10 +2,12 @@ from pydantic import BaseModel
 
 
 class OnboardingPatientRequest(BaseModel):
+    id: str | None = None
     name: str
 
 
 class OnboardingCaregiverRequest(BaseModel):
+    id: str | None = None
     name: str
 
 
@@ -15,10 +17,12 @@ class OnboardingRequest(BaseModel):
 
 
 class OnboardingPatientUpdate(BaseModel):
+    id: str | None = None
     name: str | None = None
 
 
 class OnboardingCaregiverUpdate(BaseModel):
+    id: str | None = None
     name: str | None = None
 
 
@@ -28,10 +32,12 @@ class OnboardingUpdateRequest(BaseModel):
 
 
 class OnboardingPatientResponse(BaseModel):
+    id: str | None = None
     name: str
 
 
 class OnboardingCaregiverResponse(BaseModel):
+    id: str | None = None
     name: str
 
 

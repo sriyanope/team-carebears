@@ -6,6 +6,7 @@ from datetime import date, datetime
 class ReportGenerateRequest(BaseModel):
     start_date: date
     end_date: date
+    patient_id: Optional[str] = None
     caregiver_name: Optional[str] = None
     patient_name: Optional[str] = None
 

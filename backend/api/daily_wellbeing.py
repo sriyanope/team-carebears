@@ -17,7 +17,7 @@ def create_daily_wellbeing(body: DailyWellbeingRequest):
         entries = mock_data.get_daily_wellbeing() or []
         if entries:
             return entries[0]
-    patient = patient_repo.get_first(None)
+    patient = patient_repo.get_by_id(None, body.patient_id)
     if not patient:
         raise HTTPException(status_code=404, detail="No patient found")
     entry = dw_service.create_entry(
@@ -31,10 +31,12 @@ def create_daily_wellbeing(body: DailyWellbeingRequest):
 
 
 @router.get("/api/daily-wellbeing", response_model=list[DailyWellbeingResponse])
-def list_daily_wellbeing(target_date: Optional[date] = None):
+def list_daily_wellbeing(patient_id: str | None = None, target_date: Optional[date] = None):
     if mock_data.is_enabled():
         return mock_data.get_daily_wellbeing() or []
-    patient = patient_repo.get_first(None)
+    if not patient_id:
+        raise HTTPException(status_code=400, detail="patient_id is required")
+    patient = patient_repo.get_by_id(None, patient_id)
     if not patient:
         return []
     if target_date:

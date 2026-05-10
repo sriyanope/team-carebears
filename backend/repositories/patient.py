@@ -43,6 +43,17 @@ def get_first(db: Session) -> Patient | None:
     return db.query(Patient).order_by(Patient.updated_at.desc()).first()
 
 
+def get_by_id(db: Session, patient_id: str) -> Patient | None:
+    if settings.FIREBASE_MODE:
+        client = get_firestore_client()
+        doc = client.collection("patients").document(patient_id).get()
+        if not doc.exists:
+            return None
+        data = doc.to_dict() or {}
+        return _to_patient(doc.id, data)
+    return db.query(Patient).filter(Patient.id == patient_id).first()
+
+
 def create(db: Session, name: str, caregiver_name: str) -> Patient:
     if settings.FIREBASE_MODE:
         client = get_firestore_client()

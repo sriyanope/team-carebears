@@ -26,10 +26,10 @@ def _build_note(
     return " | ".join(note_parts) if note_parts else None
 
 
-def get_all(db: Session) -> list:
+def get_all(db: Session, patient_id: str) -> list:
     if mock_data.is_enabled():
         return mock_data.get_medications() or []
-    patient = patient_repo.get_first(db)
+    patient = patient_repo.get_by_id(db, patient_id)
     if not patient:
         return []
     return med_repo.get_by_patient(db, patient.id)

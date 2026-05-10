@@ -7,8 +7,8 @@ router = APIRouter()
 
 
 @router.get("/api/onboarding", response_model=OnboardingResponse)
-def get_onboarding():
-    onboarding = onboarding_service.get()
+def get_onboarding(patient_id: str | None = None):
+    onboarding = onboarding_service.get(patient_id)
     if onboarding is None:
         raise HTTPException(status_code=404, detail="No onboarding data found")
     return onboarding
@@ -19,6 +19,8 @@ def create_onboarding(body: OnboardingRequest):
     return onboarding_service.upsert(
         patient_name=body.patient.name,
         caregiver_name=body.caregiver.name,
+        patient_id=body.patient.id,
+        caregiver_id=body.caregiver.id,
     )
 
 
@@ -27,6 +29,8 @@ def update_onboarding(body: OnboardingUpdateRequest):
     onboarding = onboarding_service.patch(
         patient_name=body.patient.name if body.patient else None,
         caregiver_name=body.caregiver.name if body.caregiver else None,
+        patient_id=body.patient.id if body.patient else None,
+        caregiver_id=body.caregiver.id if body.caregiver else None,
     )
     if onboarding is None:
         raise HTTPException(status_code=404, detail="No onboarding data found")

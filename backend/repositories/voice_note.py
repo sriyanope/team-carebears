@@ -46,7 +46,6 @@ def get_all(patient_id: str) -> list[VoiceNote]:
     docs = (
         client.collection(COLLECTION)
         .where(filter=FieldFilter("patient_id", "==", patient_id))
-        .order_by("created_at", direction="DESCENDING")
         .stream()
     )
     notes = []
@@ -56,6 +55,7 @@ def get_all(patient_id: str) -> list[VoiceNote]:
         data["created_at"] = normalize_timestamp(data.get("created_at"))
         data["updated_at"] = normalize_timestamp(data.get("updated_at"))
         notes.append(VoiceNote(**data))
+    notes.sort(key=lambda n: n.created_at or datetime.min.replace(tzinfo=timezone.utc), reverse=True)
     return notes
 
 

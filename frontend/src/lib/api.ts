@@ -1,4 +1,4 @@
-import { readOnboardingProfile } from '@/lib/onboarding'
+import { readOnboardingProfile, saveOnboardingProfile } from '@/lib/onboarding'
 
 export type AppLanguage = 'en' | 'zh' | 'ms' | 'ta'
 
@@ -9,9 +9,11 @@ export interface PatientInfo {
 
 export interface OnboardingPayload {
   patient: {
+    id?: string
     name: string
   }
   caregiver: {
+    id?: string
     name: string
   }
 }
@@ -65,10 +67,12 @@ export interface DailyWellbeingEntry {
   appetite: Appetite
   mood: Mood
   voice_note_id: string | null
+  voice_note_transcript?: string | null
   created_at: string
 }
 
 export interface DailyWellbeingRequest {
+  patient_id?: string
   sleep_pattern: SleepPattern
   appetite: Appetite
   mood: Mood
@@ -94,17 +98,25 @@ export interface ReportDetail extends ReportSummary {
 }
 
 interface ReportContext {
-  caregiver_name: string
-  patient_name: string
+  patient_id: string
 }
 
 interface MockOnboardingResponse {
   patient?: {
+    id?: string
     name?: string
   }
   caregiver?: {
+    id?: string
     name?: string
   }
+}
+
+interface OnboardingResult {
+  patient_name: string
+  caregiver_name: string
+  patient_id?: string
+  caregiver_id?: string
 }
 
 interface MockData {
@@ -140,14 +152,18 @@ function getReportContext(): ReportContext | null {
   const profile = readOnboardingProfile()
   if (!profile) return null
 
-  const caregiverName = profile.caregiverName.trim()
-  const patientName = profile.patientName.trim()
-  if (!caregiverName || !patientName) return null
+  const patientId = profile.patientId?.trim()
+  if (!patientId) return null
 
   return {
-    caregiver_name: caregiverName,
-    patient_name: patientName,
+    patient_id: patientId,
   }
+}
+
+function getPatientId(): string | null {
+  const profile = readOnboardingProfile()
+  const patientId = profile?.patientId?.trim()
+  return patientId || null
 }
 
 function withQuery(path: string, params: Record<string, string | null | undefined>): string {
@@ -163,6 +179,7 @@ function withQuery(path: string, params: Record<string, string | null | undefine
 
 export async function getPatientInfo(): Promise<PatientInfo> {
   const sessionProfile = readOnboardingProfile()
+  const patientId = sessionProfile?.patientId
 
   if (MOCK_MODE) {
     const onboarding = getMockData().onboarding
@@ -173,9 +190,17 @@ export async function getPatientInfo(): Promise<PatientInfo> {
   }
 
   try {
-    const res = await fetch(withBase('/api/onboarding'))
+    const url = patientId ? withQuery('/api/onboarding', { patient_id: patientId }) : '/api/onboarding'
+    const res = await fetch(withBase(url))
     if (res.ok) {
       const data = (await res.json()) as MockOnboardingResponse
+      if (sessionProfile && !sessionProfile.patientId && data.patient?.id) {
+        saveOnboardingProfile({
+          ...sessionProfile,
+          patientId: data.patient.id,
+          caregiverId: data.caregiver?.id ?? sessionProfile.caregiverId,
+        })
+      }
       return {
         patient_name: data.patient?.name || sessionProfile?.patientName || 'Dad',
         caregiver_name: data.caregiver?.name || sessionProfile?.caregiverName || 'Sarah',
@@ -189,11 +214,13 @@ export async function getPatientInfo(): Promise<PatientInfo> {
   }
 }
 
-export async function postOnboarding(payload: OnboardingPayload): Promise<PatientInfo | null> {
+export async function postOnboarding(payload: OnboardingPayload): Promise<OnboardingResult | null> {
   if (MOCK_MODE) {
     return {
       patient_name: payload.patient.name,
       caregiver_name: payload.caregiver.name,
+      patient_id: payload.patient.id ?? 'mock-patient',
+      caregiver_id: payload.caregiver.id ?? 'mock-caregiver',
     }
   }
 
@@ -209,6 +236,8 @@ export async function postOnboarding(payload: OnboardingPayload): Promise<Patien
     return {
       patient_name: data.patient?.name || payload.patient.name,
       caregiver_name: data.caregiver?.name || payload.caregiver.name,
+      patient_id: data.patient?.id,
+      caregiver_id: data.caregiver?.id,
     }
   } catch {
     return null
@@ -219,7 +248,11 @@ export async function fetchVoiceNotes(date?: string): Promise<VoiceNote[] | null
   if (MOCK_MODE) return getMockData().voice_notes ?? null
 
   try {
-    const url = date ? `/api/voice-notes?target_date=${date}` : '/api/voice-notes'
+    const patientId = getPatientId()
+    if (!patientId) return null
+    const url = date
+      ? withQuery('/api/voice-notes', { target_date: date, patient_id: patientId })
+      : withQuery('/api/voice-notes', { patient_id: patientId })
     const res = await fetch(withBase(url))
     if (!res.ok) return null
     return (await res.json()) as VoiceNote[]
@@ -251,10 +284,13 @@ export async function postVoiceNote(
   }
 
   try {
+    const patientId = getPatientId()
+    if (!patientId) return null
     const form = new FormData()
     form.append('audio', audioBlob, 'recording.webm')
     form.append('type', noteType)
     form.append('language', selectedLanguage)
+    form.append('patient_id', patientId)
     if (medId) form.append('med_id', medId)
 
     const res = await fetch(withBase('/api/voice-notes'), {
@@ -272,7 +308,9 @@ export async function fetchMedications(): Promise<Medication[] | null> {
   if (MOCK_MODE) return getMockData().medications ?? null
 
   try {
-    const res = await fetch(withBase('/api/medications'))
+    const patientId = getPatientId()
+    if (!patientId) return null
+    const res = await fetch(withBase(withQuery('/api/medications', { patient_id: patientId })))
     if (!res.ok) return null
     return (await res.json()) as Medication[]
   } catch {
@@ -413,7 +451,11 @@ export async function fetchDailyWellbeing(date?: string): Promise<DailyWellbeing
   if (MOCK_MODE) return getMockData().daily_wellbeing ?? null
 
   try {
-    const url = date ? `/api/daily-wellbeing?target_date=${date}` : '/api/daily-wellbeing'
+    const patientId = getPatientId()
+    if (!patientId) return null
+    const url = date
+      ? withQuery('/api/daily-wellbeing', { target_date: date, patient_id: patientId })
+      : withQuery('/api/daily-wellbeing', { patient_id: patientId })
     const res = await fetch(withBase(url))
     if (!res.ok) return null
     return (await res.json()) as DailyWellbeingEntry[]
@@ -435,15 +477,18 @@ export async function postDailyWellbeing(
       appetite: payload.appetite,
       mood: payload.mood,
       voice_note_id: payload.voice_note_id ?? null,
+      voice_note_transcript: null,
       created_at: now.toISOString(),
     }
   }
 
   try {
+    const patientId = getPatientId()
+    if (!patientId) return null
     const res = await fetch(withBase('/api/daily-wellbeing'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ ...payload, patient_id: patientId }),
     })
     if (!res.ok) return null
     return (await res.json()) as DailyWellbeingEntry
@@ -457,11 +502,11 @@ export async function fetchReports(): Promise<ReportSummary[] | null> {
 
   try {
     const context = getReportContext()
+    if (!context) return null
     const res = await fetch(
       withBase(
         withQuery('/api/reports', {
-          caregiver_name: context?.caregiver_name,
-          patient_name: context?.patient_name,
+          patient_id: context.patient_id,
         }),
       ),
     )
@@ -486,14 +531,14 @@ export async function postReport(startDate: string, endDate: string): Promise<Re
 
   try {
     const context = getReportContext()
+    if (!context) return null
     const res = await fetch(withBase('/api/reports'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         start_date: startDate,
         end_date: endDate,
-        caregiver_name: context?.caregiver_name,
-        patient_name: context?.patient_name,
+        patient_id: context.patient_id,
       }),
     })
     if (!res.ok) return null
@@ -511,11 +556,11 @@ export async function fetchReport(id: string): Promise<ReportDetail | null> {
 
   try {
     const context = getReportContext()
+    if (!context) return null
     const res = await fetch(
       withBase(
         withQuery(`/api/reports/${id}`, {
-          caregiver_name: context?.caregiver_name,
-          patient_name: context?.patient_name,
+          patient_id: context.patient_id,
         }),
       ),
     )

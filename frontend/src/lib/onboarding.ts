@@ -1,5 +1,7 @@
 export interface OnboardingProfile {
+  caregiverId?: string
   caregiverName: string
+  patientId?: string
   patientName: string
   patientAge: number
 }
@@ -17,7 +19,9 @@ export function readOnboardingProfile(): OnboardingProfile | null {
     if (!parsed.caregiverName || !parsed.patientName || !parsed.patientAge) return null
 
     return {
+      caregiverId: parsed.caregiverId,
       caregiverName: parsed.caregiverName,
+      patientId: parsed.patientId,
       patientName: parsed.patientName,
       patientAge: parsed.patientAge,
     }

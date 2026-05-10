@@ -50,8 +50,8 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
     setErrorMessage(null)
 
     const onboarding = await postOnboarding({
-      patient: { name: nextProfile.patientName },
-      caregiver: { name: nextProfile.caregiverName },
+      patient: { id: profile?.patientId, name: nextProfile.patientName },
+      caregiver: { id: profile?.caregiverId, name: nextProfile.caregiverName },
     })
 
     if (!onboarding) {
@@ -60,8 +60,13 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
       return
     }
 
-    saveOnboardingProfile(nextProfile)
-    setProfile(nextProfile)
+    const storedProfile = {
+      ...nextProfile,
+      patientId: onboarding.patient_id,
+      caregiverId: onboarding.caregiver_id,
+    }
+    saveOnboardingProfile(storedProfile)
+    setProfile(storedProfile)
     setIsSaving(false)
     setStep('welcome')
   }

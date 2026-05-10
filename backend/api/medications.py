@@ -9,13 +9,18 @@ from ..schemas.medication import (
     MedicationUpdate,
 )
 from ..services import medication as med_service
+from ..services import mock_data
 
 router = APIRouter()
 
 
 @router.get("/api/medications", response_model=list[MedicationResponse])
-def list_medications(db: Session = Depends(get_db)):
-    return med_service.get_all(db)
+def list_medications(patient_id: str | None = None, db: Session = Depends(get_db)):
+    if mock_data.is_enabled():
+        return med_service.get_all(db, patient_id or "")
+    if not patient_id:
+        raise HTTPException(status_code=400, detail="patient_id is required")
+    return med_service.get_all(db, patient_id)
 
 
 @router.post("/api/medications", response_model=MedicationResponse)
