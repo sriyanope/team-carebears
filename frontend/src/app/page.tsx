@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ClipboardIcon, File01Icon } from '@hugeicons/core-free-icons'
+import { Clock04Icon, File01Icon } from '@hugeicons/core-free-icons'
 import AppIcon from '@/components/AppIcon'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import VoiceRecorder from '@/components/VoiceRecorder'
@@ -24,7 +24,7 @@ export default function Dashboard() {
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
           <p className="text-xs uppercase tracking-[0.18em] text-stone-400">{t('caregiver')}</p>
-          <h1 className="font-serif text-3xl leading-tight text-stone-900">
+          <h1 className="text-3xl font-medium leading-tight text-stone-900">
             {t('welcomeBack', { name: caregiverName })}
           </h1>
         </div>
@@ -34,7 +34,7 @@ export default function Dashboard() {
       <div className="mt-8 grid grid-cols-2 gap-3">
         <Link
           href="/daily-wellbeing"
-          className="flex min-h-14 items-center justify-center rounded-2xl border border-stone-100 bg-white px-4 py-4 text-center font-semibold text-stone-900 shadow-sm"
+          className="flex min-h-14 items-center justify-center rounded-2xl border-stone-100 bg-white px-4 py-4 text-center font-semibold text-stone-900 shadow-sm"
         >
           {t('dailyWellbeing')}
         </Link>
@@ -49,21 +49,27 @@ export default function Dashboard() {
       <section className="mt-12 space-y-6">
         <div className="space-y-4 text-center">
           <p className="text-xs uppercase tracking-[0.18em] text-stone-400">{t('adhocVoiceNote')}</p>
-          <div className="flex items-center justify-center gap-3">
-            <div className="flex-1">
-              <VoiceRecorder
-                noteType="adhoc"
-                variant="hero"
-                idleLabel={t('tapToRecord')}
-                successLabel={t('noteSaved')}
-              />
-            </div>
+          <div className="space-y-4">
+            <VoiceRecorder
+              noteType="adhoc"
+              variant="hero"
+              idleLabel={t('tapToRecord')}
+              successLabel={t('noteSaved')}
+            />
             <Link
               href="/voice-history"
-              aria-label="View voice history"
-              className="flex h-14 w-14 items-center justify-center self-center rounded-2xl border border-stone-100 bg-white text-stone-700 shadow-sm"
+              className="block rounded-2xl border border-stone-100 bg-white p-5 text-left shadow-sm transition-colors hover:border-blue-100 active:scale-[0.99]"
             >
-              <AppIcon icon={ClipboardIcon} size={28} />
+              <p className="text-xs uppercase tracking-[0.18em] text-stone-400">Voice notes</p>
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-2xl font-medium text-stone-900">Voice history</p>
+                  <p className="mt-1 text-sm text-stone-400">Review previous recordings and transcripts.</p>
+                </div>
+                <span className="text-blue-500">
+                  <AppIcon icon={Clock04Icon} size={32} />
+                </span>
+              </div>
             </Link>
           </div>
         </div>

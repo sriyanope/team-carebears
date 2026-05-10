@@ -102,7 +102,7 @@ export default function MedCard({ med, onUpdate, onDelete }: Props) {
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 border-t border-stone-100 pt-3">
+      <div className="grid grid-cols-2 gap-2 border-t border-black border-stone-100 pt-3">
         <Link
           href={`/medications/${med.id}/edit`}
           className="flex h-12 items-center justify-center rounded-xl bg-blue-50 text-sm font-semibold text-blue-700"

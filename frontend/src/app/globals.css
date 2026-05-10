@@ -13,7 +13,14 @@ body {
   color: #4A4845;
 }
 
-h1,
+h1 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 2rem;
+  line-height: 1.15;
+  letter-spacing: 0;
+}
+
 h2,
 h3 {
   color: #1E1C1A;
