@@ -35,7 +35,9 @@ Notes:
 
 Create a Vercel project with `frontend/` as the root directory and set:
 
-- `NEXT_PUBLIC_API_URL=https://<your-render-service>.onrender.com`
+- `API_PROXY_TARGET=https://<your-render-service>.onrender.com`
+
+The frontend now calls relative `/api/*` routes and relies on the Next.js rewrite proxy, so the browser does not talk to Render directly.
 
 ### Local Env Templates
 
