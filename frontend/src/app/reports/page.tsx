@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { AddCircleIcon, File01Icon } from '@hugeicons/core-free-icons'
@@ -128,28 +129,28 @@ export default function ReportsPage() {
             </div>
           ) : (
             reports.map((report) => (
-              <button
+              <Link
                 key={report.id}
-                onClick={() => router.push(`/reports/${report.id}`)}
-                className="w-full rounded-2xl border border-stone-100 bg-white p-5 text-left shadow-sm"
+                href={`/reports/${report.id}`}
+                className="block w-full rounded-2xl border border-stone-100 bg-white p-5 text-left shadow-sm"
               >
                 <p className="text-[20px] font-semibold text-stone-900">{report.title}</p>
                 <p className="mt-2 text-base text-stone-400">{formatGeneratedLabel(report.generated_at)}</p>
                 <p className="mt-1 text-base text-stone-400">{formatRange(report.start_date, report.end_date)}</p>
-              </button>
+              </Link>
             ))
           )}
         </div>
       )}
 
       {!generating && (
-        <div className="fixed bottom-0 left-1/2 w-full max-w-[430px] -translate-x-1/2 bg-gradient-to-t from-stone-50 via-stone-50 to-transparent px-5 pb-6 pt-8">
+        <div className="pointer-events-none fixed bottom-0 left-1/2 w-full max-w-[430px] -translate-x-1/2 bg-gradient-to-t from-stone-50 via-stone-50 to-transparent px-5 pb-6 pt-8">
           <button
             onClick={() => {
               setErrorMessage(null)
               setIsModalOpen(true)
             }}
-            className="w-full rounded-2xl bg-blue-500 px-5 py-4 text-lg font-semibold text-white shadow-sm"
+            className="pointer-events-auto w-full rounded-2xl bg-blue-500 px-5 py-4 text-lg font-semibold text-white shadow-sm"
           >
             <span className="inline-flex items-center justify-center gap-2">
               <AppIcon icon={AddCircleIcon} size={20} />
