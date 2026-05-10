@@ -21,7 +21,7 @@ silverppulse.db-wal
 node_modules
 .agents
 ##### FRONTEND #####
-
+.env.example
 .next/
 frontend/.next/
 # dependencies
@@ -56,6 +56,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+!frontend/.env.example
 
 # vercel
 .vercel
@@ -64,5 +66,3 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 venv
-
-

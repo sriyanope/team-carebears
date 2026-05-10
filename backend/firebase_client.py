@@ -1,3 +1,4 @@
+import json
 from typing import Optional
 import threading
 
@@ -25,6 +26,25 @@ def _get_storage_bucket_name() -> str:
     )
 
 
+def _get_firebase_credentials():
+    raw_json = settings.FIREBASE_CREDENTIALS_JSON.strip()
+    if raw_json:
+        try:
+            payload = json.loads(raw_json)
+        except json.JSONDecodeError as exc:
+            raise ValueError("FIREBASE_CREDENTIALS_JSON must be valid JSON") from exc
+        if not isinstance(payload, dict):
+            raise ValueError("FIREBASE_CREDENTIALS_JSON must decode to a JSON object")
+        return credentials.Certificate(payload)
+
+    if settings.FIREBASE_CREDENTIALS_PATH:
+        return credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
+
+    raise ValueError(
+        "FIREBASE_CREDENTIALS_JSON or FIREBASE_CREDENTIALS_PATH is required when FIREBASE_MODE is enabled"
+    )
+
+
 def _get_or_init_firebase_app():
     try:
         return firebase_admin.get_app()
@@ -42,10 +62,7 @@ def _get_or_init_firebase_app():
         if not settings.FIREBASE_PROJECT_ID:
             raise ValueError("FIREBASE_PROJECT_ID is required when FIREBASE_MODE is enabled")
 
-        if not settings.FIREBASE_CREDENTIALS_PATH:
-            raise ValueError("FIREBASE_CREDENTIALS_PATH is required when FIREBASE_MODE is enabled")
-
-        cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
+        cred = _get_firebase_credentials()
 
         return firebase_admin.initialize_app(
             cred,
