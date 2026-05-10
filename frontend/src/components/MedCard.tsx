@@ -2,6 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import {
+  CancelCircleIcon,
+  CheckmarkCircle02Icon,
+  Delete02Icon,
+  Edit02Icon,
+  Mic01Icon,
+} from '@hugeicons/core-free-icons'
+import AppIcon from '@/components/AppIcon'
 import { deleteMedication, Medication, patchMedication, postVoiceNote } from '@/lib/api'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
 import { useLanguage } from '@/lib/LanguageContext'
@@ -83,7 +91,7 @@ export default function MedCard({ med, onUpdate, onDelete }: Props) {
           }`}
           style={{ minWidth: 48, minHeight: 48 }}
         >
-          {med.done && <span className="text-sage-500 text-xl">check</span>}
+          {med.done && <AppIcon icon={CheckmarkCircle02Icon} size={24} className="text-sage-500" />}
         </button>
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-stone-900 text-lg leading-tight truncate">{med.name}</p>
@@ -99,6 +107,7 @@ export default function MedCard({ med, onUpdate, onDelete }: Props) {
           href={`/medications/${med.id}/edit`}
           className="flex h-12 items-center justify-center rounded-xl bg-blue-50 text-sm font-semibold text-blue-700"
         >
+          <AppIcon icon={Edit02Icon} size={18} />
           Edit
         </Link>
         <button
@@ -108,7 +117,10 @@ export default function MedCard({ med, onUpdate, onDelete }: Props) {
             confirmDelete ? 'bg-rose-50 text-rose-500' : 'bg-stone-100 text-stone-700'
           } disabled:text-stone-400`}
         >
-          {deleting ? 'Deleting...' : confirmDelete ? 'Tap to confirm' : 'Delete'}
+          <span className="inline-flex items-center justify-center gap-1">
+            {!deleting && !confirmDelete && <AppIcon icon={Delete02Icon} size={18} />}
+            {deleting ? 'Deleting...' : confirmDelete ? 'Tap to confirm' : 'Delete'}
+          </span>
         </button>
       </div>
 
@@ -123,7 +135,7 @@ export default function MedCard({ med, onUpdate, onDelete }: Props) {
               }}
               className="text-stone-400 text-xs px-1"
             >
-              x
+              <AppIcon icon={CancelCircleIcon} size={18} />
             </button>
           </div>
         ) : transcribing ? (
@@ -143,7 +155,10 @@ export default function MedCard({ med, onUpdate, onDelete }: Props) {
             onClick={handleStartRecord}
             className="w-full h-12 rounded-xl border border-dashed border-stone-200 text-stone-400 text-sm"
           >
-            {t('addVoiceObservation')}
+            <span className="inline-flex items-center justify-center gap-2">
+              <AppIcon icon={Mic01Icon} size={18} />
+              {t('addVoiceObservation')}
+            </span>
           </button>
         )}
       </div>

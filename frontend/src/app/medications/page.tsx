@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { AddCircleIcon, ArrowLeft01Icon } from '@hugeicons/core-free-icons'
+import AppIcon from '@/components/AppIcon'
 import { fetchMedications, Medication } from '@/lib/api'
 import MedCard from '@/components/MedCard'
 import { useLanguage } from '@/lib/LanguageContext'
@@ -43,7 +45,7 @@ export default function MedicationsPage() {
           onClick={() => router.push('/')}
           className="w-10 h-10 flex items-center justify-center rounded-xl bg-stone-100 text-stone-700 text-lg"
         >
-          &larr;
+          <AppIcon icon={ArrowLeft01Icon} size={22} />
         </button>
         <h1 className="text-xl font-semibold text-stone-900 flex-1">{t('medication')}</h1>
         <span
@@ -59,7 +61,7 @@ export default function MedicationsPage() {
         href="/medications/add"
         className="flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-4 text-lg font-semibold text-blue-700 active:scale-[0.99]"
       >
-        <span className="text-2xl">+</span>
+        <AppIcon icon={AddCircleIcon} size={22} />
         Add new medication
       </Link>
 

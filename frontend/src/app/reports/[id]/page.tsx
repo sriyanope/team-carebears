@@ -2,6 +2,8 @@
 
 import { useParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { Flag01Icon } from '@hugeicons/core-free-icons'
+import AppIcon from '@/components/AppIcon'
 import BackButton from '@/components/BackButton'
 import { ReportDetail, fetchReport } from '@/lib/api'
 
@@ -15,7 +17,7 @@ function formatDateRange(startDate: string, endDate: string): string {
     month: 'short',
     year: 'numeric',
   }).format(new Date(endDate))
-  return `${start} – ${end}`
+  return `${start} - ${end}`
 }
 
 function formatGeneratedAt(value: string): string {
@@ -84,7 +86,10 @@ export default function ReportDetailPage() {
           </section>
 
           <section className="rounded-2xl border border-stone-100 bg-white p-6 shadow-sm">
-            <h2 className="text-2xl font-semibold text-stone-900">🚩 Things to Flag</h2>
+            <h2 className="flex items-center gap-2 text-2xl font-semibold text-stone-900">
+              <AppIcon icon={Flag01Icon} size={24} className="text-rose-500" />
+              Things to Flag
+            </h2>
             {report.flags.length === 0 ? (
               <p className="mt-4 text-[20px] leading-[1.75] text-stone-700">
                 Nothing specific to flag for this period.

@@ -1,3 +1,10 @@
+import {
+  AiMicIcon,
+  GivePillIcon,
+  SunCloud02Icon,
+} from '@hugeicons/core-free-icons'
+import type { IconSvgElement } from '@hugeicons/react'
+import AppIcon from '@/components/AppIcon'
 import { VoiceNote } from '@/lib/api'
 
 interface Props {
@@ -11,9 +18,15 @@ const typeStyles: Record<string, string> = {
 }
 
 const typeLabels: Record<string, string> = {
-  adhoc: '⚡ Ad-hoc',
-  daily_wellbeing: '🌤️ Wellbeing',
-  medication: '💊 Med',
+  adhoc: 'Ad-hoc',
+  daily_wellbeing: 'Wellbeing',
+  medication: 'Med',
+}
+
+const typeIcons: Record<string, IconSvgElement> = {
+  adhoc: AiMicIcon,
+  daily_wellbeing: SunCloud02Icon,
+  medication: GivePillIcon,
 }
 
 export default function NoteChip({ note }: Props) {
@@ -23,13 +36,15 @@ export default function NoteChip({ note }: Props) {
     hour12: true,
   })
   const typeStyle = typeStyles[note.note_type] ?? typeStyles.adhoc
-  const typeLabel = typeLabels[note.note_type] ?? '⚡ Ad-hoc'
+  const typeLabel = typeLabels[note.note_type] ?? 'Ad-hoc'
+  const typeIcon = typeIcons[note.note_type] ?? AiMicIcon
 
   return (
     <div className="bg-white rounded-2xl border border-stone-100 p-4 space-y-2">
       <div className="flex items-center gap-2">
         <span className="text-stone-400 text-sm">{time}</span>
-        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${typeStyle}`}>
+        <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${typeStyle}`}>
+          <AppIcon icon={typeIcon} size={13} />
           {typeLabel}
         </span>
       </div>

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { ClipboardIcon, File01Icon } from '@hugeicons/core-free-icons'
+import AppIcon from '@/components/AppIcon'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import VoiceRecorder from '@/components/VoiceRecorder'
 import { getPatientInfo } from '@/lib/api'
@@ -59,9 +61,9 @@ export default function Dashboard() {
             <Link
               href="/voice-history"
               aria-label="View voice history"
-              className="flex h-14 w-14 items-center justify-center self-center rounded-2xl border border-stone-100 bg-white text-2xl text-stone-700 shadow-sm"
+              className="flex h-14 w-14 items-center justify-center self-center rounded-2xl border border-stone-100 bg-white text-stone-700 shadow-sm"
             >
-              📋
+              <AppIcon icon={ClipboardIcon} size={28} />
             </Link>
           </div>
         </div>
@@ -76,7 +78,9 @@ export default function Dashboard() {
               <p className="font-serif text-2xl text-stone-900">{t('medicalSummary')}</p>
               <p className="mt-1 text-sm text-stone-400">{t('medicalSummaryDesc')}</p>
             </div>
-            <span className="text-3xl">📄</span>
+            <span className="text-blue-500">
+              <AppIcon icon={File01Icon} size={32} />
+            </span>
           </div>
         </Link>
       </section>

@@ -2,6 +2,8 @@
 
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { AddCircleIcon, File01Icon } from '@hugeicons/core-free-icons'
+import AppIcon from '@/components/AppIcon'
 import BackButton from '@/components/BackButton'
 import { ReportSummary, fetchReports, postReport } from '@/lib/api'
 
@@ -117,7 +119,9 @@ export default function ReportsPage() {
             </div>
           ) : reports.length === 0 ? (
             <div className="rounded-2xl border border-stone-100 bg-white p-6 text-center shadow-sm">
-              <p className="text-5xl">📄</p>
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-500">
+                <AppIcon icon={File01Icon} size={34} />
+              </div>
               <p className="mt-4 text-lg leading-relaxed text-stone-700">
                 No reports yet. Create your first report below.
               </p>
@@ -147,7 +151,10 @@ export default function ReportsPage() {
             }}
             className="w-full rounded-2xl bg-blue-500 px-5 py-4 text-lg font-semibold text-white shadow-sm"
           >
-            + Create New Report
+            <span className="inline-flex items-center justify-center gap-2">
+              <AppIcon icon={AddCircleIcon} size={20} />
+              Create New Report
+            </span>
           </button>
         </div>
       )}

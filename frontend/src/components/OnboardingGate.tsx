@@ -2,6 +2,15 @@
 
 import { FormEvent, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import {
+  Calendar03Icon,
+  FavouriteIcon,
+  Profile02Icon,
+  UserCircleIcon,
+  UserIcon,
+  WavingHand02Icon,
+} from '@hugeicons/core-free-icons'
+import AppIcon from '@/components/AppIcon'
 import { postOnboarding } from '@/lib/api'
 import { useLanguage } from '@/lib/LanguageContext'
 import {
@@ -50,8 +59,8 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
     setErrorMessage(null)
 
     const onboarding = await postOnboarding({
-      patient: { id: profile?.patientId, name: nextProfile.patientName },
-      caregiver: { id: profile?.caregiverId, name: nextProfile.caregiverName },
+      patient: { name: nextProfile.patientName },
+      caregiver: { name: nextProfile.caregiverName },
     })
 
     if (!onboarding) {
@@ -60,13 +69,8 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
       return
     }
 
-    const storedProfile = {
-      ...nextProfile,
-      patientId: onboarding.patient_id,
-      caregiverId: onboarding.caregiver_id,
-    }
-    saveOnboardingProfile(storedProfile)
-    setProfile(storedProfile)
+    saveOnboardingProfile(nextProfile)
+    setProfile(nextProfile)
     setIsSaving(false)
     setStep('welcome')
   }
@@ -85,8 +89,8 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
       <main className="min-h-screen bg-stone-50 px-5 py-6">
         <section className="flex min-h-[calc(100vh-48px)] flex-col justify-between rounded-2xl border border-blue-100 bg-white p-5">
           <div className="space-y-6">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-4xl">
-              👋
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-500">
+              <AppIcon icon={WavingHand02Icon} size={34} />
             </div>
             <div className="space-y-3">
               <p className="text-xs font-medium uppercase tracking-widest text-stone-400">{t('allSet')}</p>
@@ -103,7 +107,9 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
             <div className="rounded-2xl border border-stone-100 bg-blue-50 p-4">
               <p className="text-xs font-medium uppercase tracking-widest text-blue-700">{t('careProfile')}</p>
               <div className="mt-3 flex items-center gap-3">
-                <span className="text-4xl">🧓</span>
+                <span className="text-blue-700">
+                  <AppIcon icon={Profile02Icon} size={36} />
+                </span>
                 <div>
                   <p className="text-xl font-semibold text-stone-900">{profile.patientName}</p>
                   <p className="text-stone-400">{t('yearsOld', { age: profile.patientAge })}</p>
@@ -131,8 +137,8 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
         <form onSubmit={handleSubmit} className="flex min-h-[calc(100vh-48px)] flex-col justify-between">
           <div className="space-y-6">
             <div className="space-y-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-4xl">
-                🫶
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-500">
+                <AppIcon icon={FavouriteIcon} size={34} />
               </div>
               <div className="space-y-2">
                 <p className="text-xs font-medium uppercase tracking-widest text-stone-400">{t('welcomeToSilverPulse')}</p>
@@ -146,7 +152,7 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
             <div className="space-y-4">
               <label className="block rounded-2xl border border-stone-100 bg-white p-4">
                 <span className="mb-3 flex items-center gap-3 text-lg font-semibold text-stone-900">
-                  <span className="text-3xl">🙂</span>
+                  <AppIcon icon={UserIcon} size={28} className="text-blue-500" />
                   {t('yourName')}
                 </span>
                 <input
@@ -160,7 +166,7 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
 
               <label className="block rounded-2xl border border-stone-100 bg-white p-4">
                 <span className="mb-3 flex items-center gap-3 text-lg font-semibold text-stone-900">
-                  <span className="text-3xl">🧓</span>
+                  <AppIcon icon={UserCircleIcon} size={28} className="text-blue-500" />
                   {t('patientName')}
                 </span>
                 <input
@@ -174,7 +180,7 @@ export default function OnboardingGate({ children }: { children: React.ReactNode
 
               <label className="block rounded-2xl border border-stone-100 bg-white p-4">
                 <span className="mb-3 flex items-center gap-3 text-lg font-semibold text-stone-900">
-                  <span className="text-3xl">🎂</span>
+                  <AppIcon icon={Calendar03Icon} size={28} className="text-blue-500" />
                   {t('patientAge')}
                 </span>
                 <input

@@ -1,14 +1,28 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import {
+  ChartColumnDecreasingIcon,
+  ChartColumnIcon,
+  ChartColumnStackedIcon,
+  HappyIcon,
+  Moon02Icon,
+  NeutralIcon,
+  Sad01Icon,
+  Sad02Icon,
+  SleepingIcon,
+  SmileIcon,
+  Sun02Icon,
+} from '@hugeicons/core-free-icons'
+import type { IconSvgElement } from '@hugeicons/react'
 import BackButton from '@/components/BackButton'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import VoiceRecorder from '@/components/VoiceRecorder'
 import WellbeingOption from '@/components/WellbeingOption'
 import {
   Appetite,
-  DailyWellbeingRequest,
   DailyWellbeingEntry,
+  DailyWellbeingRequest,
   Mood,
   SleepPattern,
   VoiceNote,
@@ -29,24 +43,24 @@ export default function DailyWellbeingPage() {
   const [saving, setSaving] = useState(false)
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
 
-  const sleepOptions: Array<{ value: SleepPattern; label: string; icon: string }> = [
-    { value: 'earlier_sleep_later_wake', label: t('sleepEarlier'), icon: '🌙' },
-    { value: 'same', label: t('sleepSame'), icon: '=' },
-    { value: 'later_sleep_earlier_wake', label: t('sleepLater'), icon: '☀️' },
+  const sleepOptions: Array<{ value: SleepPattern; label: string; icon: IconSvgElement }> = [
+    { value: 'earlier_sleep_later_wake', label: t('sleepEarlier'), icon: Moon02Icon },
+    { value: 'same', label: t('sleepSame'), icon: SleepingIcon },
+    { value: 'later_sleep_earlier_wake', label: t('sleepLater'), icon: Sun02Icon },
   ]
 
-  const appetiteOptions: Array<{ value: Appetite; label: string; icon: string }> = [
-    { value: 'eating_less', label: t('appetiteLess'), icon: '📉' },
-    { value: 'same', label: t('appetiteSame'), icon: '=' },
-    { value: 'eating_more', label: t('appetiteMore'), icon: '📈' },
+  const appetiteOptions: Array<{ value: Appetite; label: string; icon: IconSvgElement }> = [
+    { value: 'eating_less', label: t('appetiteLess'), icon: ChartColumnDecreasingIcon },
+    { value: 'same', label: t('appetiteSame'), icon: ChartColumnIcon },
+    { value: 'eating_more', label: t('appetiteMore'), icon: ChartColumnStackedIcon },
   ]
 
-  const moodOptions: Array<{ value: Mood; label: string; icon: string }> = [
-    { value: 'happy', label: t('moodHappy'), icon: '😄' },
-    { value: 'ok', label: t('moodOk'), icon: '🙂' },
-    { value: 'neutral', label: t('moodNeutral'), icon: '😐' },
-    { value: 'sad', label: t('moodSad'), icon: '😟' },
-    { value: 'upset', label: t('moodUpset'), icon: '😰' },
+  const moodOptions: Array<{ value: Mood; label: string; icon: IconSvgElement }> = [
+    { value: 'happy', label: t('moodHappy'), icon: HappyIcon },
+    { value: 'ok', label: t('moodOk'), icon: SmileIcon },
+    { value: 'neutral', label: t('moodNeutral'), icon: NeutralIcon },
+    { value: 'sad', label: t('moodSad'), icon: Sad01Icon },
+    { value: 'upset', label: t('moodUpset'), icon: Sad02Icon },
   ]
 
   useEffect(() => {

@@ -1,6 +1,8 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { ArrowLeft01Icon } from '@hugeicons/core-free-icons'
+import AppIcon from '@/components/AppIcon'
 
 interface BackButtonProps {
   fallbackHref: string
@@ -26,7 +28,7 @@ export default function BackButton({ fallbackHref, className }: BackButtonProps)
       aria-label="Go back"
       className={className}
     >
-      ←
+      <AppIcon icon={ArrowLeft01Icon} size={22} />
     </button>
   )
 }

@@ -3,6 +3,13 @@
 import { FormEvent, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
+import {
+  ArrowLeft01Icon,
+  Calendar03Icon,
+  Medicine01Icon,
+  StickyNote01Icon,
+} from '@hugeicons/core-free-icons'
+import AppIcon from '@/components/AppIcon'
 import { fetchMedication, updateMedicationDetails } from '@/lib/api'
 
 export default function EditMedicationPage() {
@@ -77,7 +84,7 @@ export default function EditMedicationPage() {
           className="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-lg text-stone-700 shadow-sm"
           aria-label="Back to medication list"
         >
-          &larr;
+          <AppIcon icon={ArrowLeft01Icon} size={22} />
         </Link>
         <div className="flex-1">
           <p className="text-xs uppercase tracking-[0.18em] text-stone-400">Medication</p>
@@ -89,7 +96,7 @@ export default function EditMedicationPage() {
         <div className="rounded-2xl border border-stone-100 bg-white p-4 shadow-sm">
           <label className="block">
             <span className="mb-3 flex items-center gap-3 text-lg font-semibold text-stone-900">
-              <span className="text-3xl">{'\uD83D\uDC8A'}</span>
+              <AppIcon icon={Medicine01Icon} size={28} className="text-blue-500" />
               Name of medicine
             </span>
             <input
@@ -135,7 +142,7 @@ export default function EditMedicationPage() {
         <div className="rounded-2xl border border-stone-100 bg-white p-4 shadow-sm">
           <label className="block">
             <span className="mb-3 flex items-center gap-3 text-lg font-semibold text-stone-900">
-              <span className="text-3xl">{'\uD83D\uDCDD'}</span>
+              <AppIcon icon={StickyNote01Icon} size={28} className="text-blue-500" />
               Special instructions
             </span>
             <textarea
@@ -150,7 +157,7 @@ export default function EditMedicationPage() {
         <div className="rounded-2xl border border-stone-100 bg-white p-4 shadow-sm">
           <label className="block">
             <span className="mb-3 flex items-center gap-3 text-lg font-semibold text-stone-900">
-              <span className="text-3xl">{'\uD83D\uDCC5'}</span>
+              <AppIcon icon={Calendar03Icon} size={28} className="text-blue-500" />
               Date of expiry
             </span>
             <input

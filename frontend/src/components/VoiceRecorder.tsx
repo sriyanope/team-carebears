@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { Mic01Icon } from '@hugeicons/core-free-icons'
+import AppIcon from '@/components/AppIcon'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
 import { VoiceNote, postVoiceNote } from '@/lib/api'
 import { useLanguage } from '@/lib/LanguageContext'
@@ -136,7 +138,7 @@ export default function VoiceRecorder({
       <div className={isHero ? 'space-y-4 text-center' : 'space-y-3'}>
         <button onClick={() => void start()} className={isHero ? `${idleButtonClass} ${heroButtonSize}` : idleButtonClass}>
           <div className="flex flex-col items-center justify-center gap-2">
-            <span className={isHero ? 'text-6xl' : 'text-2xl'}>🎙️</span>
+            <AppIcon icon={Mic01Icon} size={isHero ? 56 : 24} />
             <span className={`${isHero ? 'text-lg' : 'text-sm'} font-semibold`}>{idleLabel}</span>
           </div>
         </button>

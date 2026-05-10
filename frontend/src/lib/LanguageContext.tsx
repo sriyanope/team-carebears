@@ -47,7 +47,7 @@ const TRANSLATIONS = {
     recordedAt: 'Recorded at {time}',
     discard: 'Discard',
     saved: 'Saved',
-    savedCheck: 'Saved ✓',
+    savedCheck: 'Saved',
     savedSuccessfully: 'Saved successfully',
     transcribing: 'Transcribing...',
     savingNoteIn: 'Saving the note in {language}.',

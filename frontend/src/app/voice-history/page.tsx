@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Mic01Icon } from '@hugeicons/core-free-icons'
+import AppIcon from '@/components/AppIcon'
 import BackButton from '@/components/BackButton'
 import { VoiceNote, fetchVoiceNotes } from '@/lib/api'
 
@@ -47,7 +49,9 @@ export default function VoiceHistoryPage() {
       <div className="mt-8 space-y-4 pb-6">
         {notes.length === 0 ? (
           <div className="rounded-2xl border border-stone-100 bg-white p-6 text-center shadow-sm">
-            <p className="text-xl">🎙️</p>
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-500">
+              <AppIcon icon={Mic01Icon} size={28} />
+            </div>
             <p className="mt-3 text-base text-stone-700">
               No voice notes yet. Use the microphone on the home page to record.
             </p>
