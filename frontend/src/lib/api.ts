@@ -32,12 +32,26 @@ export interface Medication {
   patient_id: string
   name: string
   note: string | null
+  dosage: string | null
+  frequency_per_week: number | null
+  special_instructions: string | null
+  expiry_date: string | null
   time_str: string
   done: boolean
   voice_note_text: string | null
   created_at: string
   updated_at: string
 }
+
+export interface MedicationCreatePayload {
+  name: string
+  dosage: string
+  frequency_per_week: number
+  special_instructions?: string | null
+  expiry_date?: string | null
+}
+
+export type MedicationUpdatePayload = Partial<MedicationCreatePayload>
 
 export type SleepPattern = 'earlier_sleep_later_wake' | 'same' | 'later_sleep_earlier_wake'
 export type Appetite = 'eating_less' | 'same' | 'eating_more'
@@ -233,6 +247,112 @@ export async function fetchMedications(): Promise<Medication[] | null> {
     return (await res.json()) as Medication[]
   } catch {
     return null
+  }
+}
+
+export async function fetchMedication(id: string): Promise<Medication | null> {
+  if (MOCK_MODE) {
+    const meds = getMockData().medications ?? []
+    return meds.find((med) => med.id === id) ?? null
+  }
+
+  try {
+    const res = await fetch(withBase(`/api/medications/${id}`))
+    if (!res.ok) return null
+    return (await res.json()) as Medication
+  } catch {
+    return null
+  }
+}
+
+export async function postMedication(payload: MedicationCreatePayload): Promise<Medication | null> {
+  if (MOCK_MODE) {
+    const now = new Date().toISOString()
+    return {
+      id: crypto.randomUUID(),
+      patient_id: 'mock-patient',
+      name: payload.name,
+      note: [
+        `Dosage: ${payload.dosage}`,
+        `${payload.frequency_per_week} times/week`,
+        payload.special_instructions ? `Instructions: ${payload.special_instructions}` : '',
+        payload.expiry_date ? `Expires: ${payload.expiry_date}` : '',
+      ].filter(Boolean).join(' | '),
+      dosage: payload.dosage,
+      frequency_per_week: payload.frequency_per_week,
+      special_instructions: payload.special_instructions ?? null,
+      expiry_date: payload.expiry_date ?? null,
+      time_str: '09:00',
+      done: false,
+      voice_note_text: null,
+      created_at: now,
+      updated_at: now,
+    }
+  }
+
+  try {
+    const res = await fetch(withBase('/api/medications'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    if (!res.ok) return null
+    return (await res.json()) as Medication
+  } catch {
+    return null
+  }
+}
+
+export async function updateMedicationDetails(
+  id: string,
+  payload: MedicationUpdatePayload,
+): Promise<Medication | null> {
+  if (MOCK_MODE) {
+    const meds = getMockData().medications ?? []
+    const found = meds.find((med) => med.id === id) ?? meds[0]
+    if (!found) return null
+
+    const dosage = payload.dosage ?? found.dosage ?? ''
+    const frequency = payload.frequency_per_week ?? found.frequency_per_week ?? 0
+    const instructions = payload.special_instructions ?? found.special_instructions ?? ''
+    const expiry = payload.expiry_date ?? found.expiry_date ?? ''
+
+    return {
+      ...found,
+      ...payload,
+      note: [
+        dosage ? `Dosage: ${dosage}` : '',
+        frequency ? `${frequency} times/week` : '',
+        instructions ? `Instructions: ${instructions}` : '',
+        expiry ? `Expires: ${expiry}` : '',
+      ].filter(Boolean).join(' | '),
+      updated_at: new Date().toISOString(),
+    }
+  }
+
+  try {
+    const res = await fetch(withBase(`/api/medications/${id}`), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    if (!res.ok) return null
+    return (await res.json()) as Medication
+  } catch {
+    return null
+  }
+}
+
+export async function deleteMedication(id: string): Promise<boolean> {
+  if (MOCK_MODE) return true
+
+  try {
+    const res = await fetch(withBase(`/api/medications/${id}`), {
+      method: 'DELETE',
+    })
+    return res.ok
+  } catch {
+    return false
   }
 }
 

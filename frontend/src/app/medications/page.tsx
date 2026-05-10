@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { fetchMedications, Medication } from '@/lib/api'
 import MedCard from '@/components/MedCard'
@@ -17,6 +18,10 @@ export default function MedicationsPage() {
 
   function handleUpdate(updated: Medication) {
     setMeds((prev) => (prev ? prev.map((m) => (m.id === updated.id ? updated : m)) : prev))
+  }
+
+  function handleDelete(id: string) {
+    setMeds((prev) => (prev ? prev.filter((m) => m.id !== id) : prev))
   }
 
   if (!meds) {
@@ -38,7 +43,7 @@ export default function MedicationsPage() {
           onClick={() => router.push('/')}
           className="w-10 h-10 flex items-center justify-center rounded-xl bg-stone-100 text-stone-700 text-lg"
         >
-          ←
+          &larr;
         </button>
         <h1 className="text-xl font-semibold text-stone-900 flex-1">{t('medication')}</h1>
         <span
@@ -50,10 +55,18 @@ export default function MedicationsPage() {
         </span>
       </div>
 
+      <Link
+        href="/medications/add"
+        className="flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-4 text-lg font-semibold text-blue-700 active:scale-[0.99]"
+      >
+        <span className="text-2xl">+</span>
+        Add new medication
+      </Link>
+
       {/* Med cards */}
       <div className="space-y-3">
         {meds.map((med) => (
-          <MedCard key={med.id} med={med} onUpdate={handleUpdate} />
+          <MedCard key={med.id} med={med} onUpdate={handleUpdate} onDelete={handleDelete} />
         ))}
       </div>
 

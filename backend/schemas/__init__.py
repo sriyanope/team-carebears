@@ -1,5 +1,5 @@
 from .voice_note import VoiceNoteResponse
-from .medication import MedicationResponse, MedicationUpdate
+from .medication import MedicationCreate, MedicationDetailsUpdate, MedicationResponse, MedicationUpdate
 from .daily_wellbeing import DailyWellbeingRequest, DailyWellbeingResponse
 from .onboarding import (
     OnboardingCaregiverRequest,
@@ -16,7 +16,7 @@ from .report import ReportGenerateRequest, ReportFlagResponse, ReportSummaryResp
 
 __all__ = [
     "VoiceNoteResponse",
-    "MedicationResponse", "MedicationUpdate",
+    "MedicationCreate", "MedicationDetailsUpdate", "MedicationResponse", "MedicationUpdate",
     "DailyWellbeingRequest", "DailyWellbeingResponse",
     "OnboardingPatientRequest", "OnboardingCaregiverRequest", "OnboardingRequest",
     "OnboardingPatientUpdate", "OnboardingCaregiverUpdate", "OnboardingUpdateRequest",

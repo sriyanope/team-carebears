@@ -1,13 +1,15 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Medication, patchMedication, postVoiceNote } from '@/lib/api'
+import Link from 'next/link'
+import { deleteMedication, Medication, patchMedication, postVoiceNote } from '@/lib/api'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
 import { useLanguage } from '@/lib/LanguageContext'
 
 interface Props {
   med: Medication
   onUpdate: (updated: Medication) => void
+  onDelete: (id: string) => void
 }
 
 function timeBadgeStyle(med: Medication): string {
@@ -19,10 +21,12 @@ function timeBadgeStyle(med: Medication): string {
   return 'bg-stone-100 text-stone-500'
 }
 
-export default function MedCard({ med, onUpdate }: Props) {
+export default function MedCard({ med, onUpdate, onDelete }: Props) {
   const { language, t } = useLanguage()
   const [recording, setRecording] = useState(false)
   const [transcribing, setTranscribing] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const { isRecording, audioBlob, start, stop, reset } = useAudioRecorder()
 
   async function toggleDone() {
@@ -37,6 +41,18 @@ export default function MedCard({ med, onUpdate }: Props) {
 
   function handleStopRecord() {
     stop()
+  }
+
+  async function handleDelete() {
+    if (!confirmDelete) {
+      setConfirmDelete(true)
+      return
+    }
+
+    setDeleting(true)
+    const deleted = await deleteMedication(med.id)
+    setDeleting(false)
+    if (deleted) onDelete(med.id)
   }
 
   useEffect(() => {
@@ -67,7 +83,7 @@ export default function MedCard({ med, onUpdate }: Props) {
           }`}
           style={{ minWidth: 48, minHeight: 48 }}
         >
-          {med.done && <span className="text-sage-500 text-xl">✓</span>}
+          {med.done && <span className="text-sage-500 text-xl">check</span>}
         </button>
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-stone-900 text-lg leading-tight truncate">{med.name}</p>
@@ -76,6 +92,24 @@ export default function MedCard({ med, onUpdate }: Props) {
         <span className={`text-xs font-medium px-2 py-1 rounded-lg flex-shrink-0 ${timeBadgeStyle(med)}`}>
           {med.time_str}
         </span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 border-t border-stone-100 pt-3">
+        <Link
+          href={`/medications/${med.id}/edit`}
+          className="flex h-12 items-center justify-center rounded-xl bg-blue-50 text-sm font-semibold text-blue-700"
+        >
+          Edit
+        </Link>
+        <button
+          onClick={handleDelete}
+          disabled={deleting}
+          className={`h-12 rounded-xl text-sm font-semibold ${
+            confirmDelete ? 'bg-rose-50 text-rose-500' : 'bg-stone-100 text-stone-700'
+          } disabled:text-stone-400`}
+        >
+          {deleting ? 'Deleting...' : confirmDelete ? 'Tap to confirm' : 'Delete'}
+        </button>
       </div>
 
       <div className="border-t border-stone-100 pt-3">
@@ -89,7 +123,7 @@ export default function MedCard({ med, onUpdate }: Props) {
               }}
               className="text-stone-400 text-xs px-1"
             >
-              ✕
+              x
             </button>
           </div>
         ) : transcribing ? (
