@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     FIREBASE_MODE: bool = False
     FIREBASE_PROJECT_ID: str = ""
     FIREBASE_CREDENTIALS_PATH: str = ""
+    FIREBASE_STORAGE_BUCKET: str = ""
     ANTHROPIC_API_KEY: str = ""
     OPENAI_API_KEY: str = ""
     WHISPER_MODE: str = "local"

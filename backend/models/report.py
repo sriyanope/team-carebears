@@ -1,11 +1,21 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import date, datetime
 
 
-class ReportFlag(BaseModel):
-    severity: str  # "red" or "amber"
+class ReportReference(BaseModel):
+    date_label: str
+    source_type: str
+
+
+class ReportSummaryBullet(BaseModel):
     text: str
+    references: List[ReportReference] = Field(default_factory=list)
+
+
+class ReportFlag(BaseModel):
+    what: str
+    why: str
 
 
 class Report(BaseModel):
@@ -14,8 +24,11 @@ class Report(BaseModel):
     title: str
     start_date: date
     end_date: date
-    summary: Optional[str] = None
-    flags: List[ReportFlag] = []
+    summary_narrative: str = ""
+    summary_bullets: List[ReportSummaryBullet] = Field(default_factory=list)
+    flags: List[ReportFlag] = Field(default_factory=list)
+    language: str = "en"
+    audio_storage_path: Optional[str] = None
     generated_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None

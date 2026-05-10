@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import re
 from datetime import date, datetime, timedelta, timezone
@@ -8,7 +9,7 @@ from fastapi import HTTPException
 from ..config import settings
 from ..firebase_client import get_firestore_client, normalize_timestamp
 from ..models.patient import Patient
-from ..models.report import Report, ReportFlag
+from ..models.report import Report, ReportFlag, ReportReference, ReportSummaryBullet
 from ..repositories import daily_wellbeing as daily_wellbeing_repo
 from ..repositories import medication as medication_repo
 from ..repositories import patient as patient_repo
@@ -16,30 +17,55 @@ from ..repositories import report as report_repo
 from ..repositories import voice_note as voice_note_repo
 from . import mock_data
 
-REPORT_PROMPT = """
+logger = logging.getLogger(__name__)
+
+REPORT_PROMPT_TEMPLATE = """
 You are a caregiving report assistant. A family caregiver of a person with dementia has been logging observations over a period of time. Below is the evidence bundle containing all their logged data.
 
+Generate the report content in {language_name}.
+
 Your task:
-1. Internally analyse the data across these categories: cognition changes, mood and behaviour changes, sleep/appetite/wellbeing patterns, and medication adherence. Do NOT output these as separate sections.
-2. Write a SINGLE narrative paragraph that weaves together all the key findings from the period. The paragraph should:
+1. Internally analyze the data across these categories: cognition changes, mood and behaviour changes, sleep/appetite/wellbeing patterns, and medication adherence. Do NOT output these as separate sections.
+2. Write a narrative summary paragraph in {language_name}. This must be the richer, detailed version of the summary. It should:
    - Be written in plain, compassionate language that a caregiver can easily read and understand
-   - Reference specific dates when describing incidents or changes (e.g. "On 5 May, he got lost..." not "he got lost once")
-   - Mention patterns and trends, not just individual events
-   - Be concise but comprehensive — aim for 4-8 sentences
+   - Reference specific dates when describing incidents or changes
+   - Mention patterns and trends, not just isolated incidents
+   - Be concise but still detailed enough to preserve important context
    - NOT make clinical diagnoses or assign severity scores
-   - Be grounded only in the data provided — do not infer or assume anything not in the evidence
-3. Separately, produce a "Things to Flag" list — a flat list of specific items the caregiver should remember to mention to the doctor at their next visit. Each flag should be 1-2 sentences, referencing specific dates. These are plain observations, NOT clinical assessments. Only flag genuinely notable items — do not flag routine or expected things.
+   - Be grounded only in the data provided
+3. Write a condensed bullet-point summary in {language_name}. These bullets must:
+   - Cover the same key findings as the narrative summary
+   - Stay information-dense and not be watered down
+   - Include compact references for each bullet
+   - Use references as objects in the form {{"date_label": "5 May", "source_type": "voice_note"}} where source_type is one of: "voice_note", "daily_wellbeing", "medication"
+4. Separately, produce a "Things to Flag" list in {language_name}. Each flag must contain:
+   - "what": what happened
+   - "why": why the caregiver should mention it to the doctor
+   Only include genuinely notable items.
 
 Respond ONLY with valid JSON in this exact format, no markdown fences, no preamble:
 {{
-  "summary": "Your single narrative paragraph here.",
+  "summary_narrative": "Detailed narrative summary paragraph.",
+  "summary_bullets": [
+    {{
+      "text": "Condensed but detailed summary point.",
+      "references": [
+        {{"date_label": "5 May", "source_type": "voice_note"}}
+      ]
+    }}
+  ],
   "flags": [
-    {{"text": "Flag text referencing specific date(s)."}},
-    {{"text": "Another flag."}}
+    {{
+      "what": "What happened.",
+      "why": "Why it should be flagged."
+    }}
   ]
 }}
 
-If there is very little data or nothing notable, still provide a brief summary stating that and return an empty flags array.
+If there is very little data or nothing notable:
+- still provide a brief narrative summary
+- still provide at least one summary bullet
+- return an empty flags array if nothing needs to be flagged
 
 === EVIDENCE BUNDLE ===
 {evidence_bundle}
@@ -51,7 +77,9 @@ IMPORTANT:
 - Return a single valid JSON object only.
 - No markdown fences.
 - No explanatory text before or after the JSON.
-- Every flag item must be an object with a single "text" field.
+- "summary_narrative" must be a string.
+- "summary_bullets" must be a list of objects with "text" and "references".
+- "flags" must be a list of objects with "what" and "why".
 """.rstrip()
 
 DEFAULT_REPORT_MODEL_CANDIDATES = [
@@ -61,6 +89,13 @@ DEFAULT_REPORT_MODEL_CANDIDATES = [
     "claude-opus-4-6",
     "claude-opus-4-1-20250805",
 ]
+
+REPORT_LANGUAGE_NAMES = {
+    "en": "English",
+    "zh": "Chinese",
+    "ms": "Malay",
+    "ta": "Tamil",
+}
 
 SLEEP_LABELS = {
     "earlier_sleep_later_wake": "Earlier sleep time, later wake time",
@@ -82,6 +117,8 @@ MOOD_LABELS = {
     "upset": "Upset",
 }
 
+VALID_SOURCE_TYPES = {"voice_note", "daily_wellbeing", "medication"}
+
 
 def _format_date(value: date) -> str:
     return f"{value.day} {value.strftime('%b %Y')}"
@@ -91,6 +128,15 @@ def _format_time(value: datetime | None) -> str:
     if value is None:
         return "Unknown time"
     return value.astimezone(timezone.utc).strftime("%-I:%M %p UTC")
+
+
+def _normalize_report_language(language: str | None) -> str:
+    normalized = (language or "en").strip().lower()
+    return normalized if normalized in REPORT_LANGUAGE_NAMES else "en"
+
+
+def _report_language_name(language: str) -> str:
+    return REPORT_LANGUAGE_NAMES.get(_normalize_report_language(language), "English")
 
 
 def _collect_text(response) -> str:
@@ -110,18 +156,82 @@ def _strip_json_fences(raw_text: str) -> str:
     return cleaned.strip()
 
 
+def _parse_references(raw_references: object) -> list[dict]:
+    if not isinstance(raw_references, list):
+        return []
+    normalized: list[dict] = []
+    for item in raw_references:
+        if not isinstance(item, dict):
+            continue
+        date_label = item.get("date_label")
+        source_type = item.get("source_type")
+        if not isinstance(date_label, str) or not date_label.strip():
+            continue
+        if not isinstance(source_type, str):
+            continue
+        normalized_source_type = source_type.strip().lower()
+        if normalized_source_type not in VALID_SOURCE_TYPES:
+            continue
+        normalized.append(
+            {
+                "date_label": date_label.strip(),
+                "source_type": normalized_source_type,
+            }
+        )
+    return normalized
+
+
 def _parse_report_payload(raw_text: str) -> dict:
     cleaned = _strip_json_fences(raw_text)
     data = json.loads(cleaned)
     if not isinstance(data, dict):
         raise ValueError("Claude response was not a JSON object")
-    summary = data.get("summary")
+
+    summary_narrative = data.get("summary_narrative")
+    summary_bullets = data.get("summary_bullets", [])
     flags = data.get("flags", [])
-    if not isinstance(summary, str):
-        raise ValueError("Claude response did not include a string summary")
+
+    if not isinstance(summary_narrative, str) or not summary_narrative.strip():
+        raise ValueError("Claude response did not include a string summary_narrative")
+    if not isinstance(summary_bullets, list):
+        raise ValueError("Claude response did not include a list summary_bullets")
     if not isinstance(flags, list):
-        raise ValueError("Claude response did not include a list of flags")
-    return data
+        raise ValueError("Claude response did not include a list flags")
+
+    normalized_bullets: list[dict] = []
+    for item in summary_bullets:
+        if not isinstance(item, dict):
+            continue
+        text = item.get("text")
+        if not isinstance(text, str) or not text.strip():
+            continue
+        normalized_bullets.append(
+            {
+                "text": text.strip(),
+                "references": _parse_references(item.get("references", [])),
+            }
+        )
+
+    if not normalized_bullets:
+        raise ValueError("Claude response did not include any valid summary bullets")
+
+    normalized_flags: list[dict] = []
+    for item in flags:
+        if not isinstance(item, dict):
+            continue
+        what = item.get("what")
+        why = item.get("why")
+        if not isinstance(what, str) or not what.strip():
+            continue
+        if not isinstance(why, str) or not why.strip():
+            continue
+        normalized_flags.append({"what": what.strip(), "why": why.strip()})
+
+    return {
+        "summary_narrative": summary_narrative.strip(),
+        "summary_bullets": normalized_bullets,
+        "flags": normalized_flags,
+    }
 
 
 def _get_report_model_candidates() -> list[str]:
@@ -252,7 +362,50 @@ def _build_evidence_bundle(patient_name: str, start_date: date, end_date: date, 
     return "\n".join(lines)
 
 
-def _mock_report(start_date: date, end_date: date) -> Report:
+def _build_report_prompt(evidence_bundle: str, language: str) -> str:
+    return REPORT_PROMPT_TEMPLATE.format(
+        evidence_bundle=evidence_bundle,
+        language_name=_report_language_name(language),
+    )
+
+
+def _report_from_payload(
+    patient_id: str,
+    title: str,
+    start_date: date,
+    end_date: date,
+    language: str,
+    payload: dict,
+) -> Report:
+    return Report(
+        patient_id=patient_id,
+        title=title,
+        start_date=start_date,
+        end_date=end_date,
+        summary_narrative=payload["summary_narrative"],
+        summary_bullets=[
+            ReportSummaryBullet(
+                text=item["text"],
+                references=[
+                    ReportReference(
+                        date_label=reference["date_label"],
+                        source_type=reference["source_type"],
+                    )
+                    for reference in item.get("references", [])
+                ],
+            )
+            for item in payload["summary_bullets"]
+        ],
+        flags=[
+            ReportFlag(what=item["what"], why=item["why"])
+            for item in payload["flags"]
+        ],
+        language=_normalize_report_language(language),
+        generated_at=datetime.now(timezone.utc),
+    )
+
+
+def _mock_report(start_date: date, end_date: date, language: str = "en") -> Report:
     reports = mock_data.get_reports() or []
     source = reports[0] if reports else None
     generated_at = datetime.now(timezone.utc)
@@ -263,8 +416,16 @@ def _mock_report(start_date: date, end_date: date) -> Report:
             title="Report #1",
             start_date=start_date,
             end_date=end_date,
-            summary="No notable caregiving data was recorded for this period.",
+            summary_narrative="No notable caregiving data was recorded for this period.",
+            summary_bullets=[
+                ReportSummaryBullet(
+                    text="No notable caregiving data was recorded for this period.",
+                    references=[],
+                )
+            ],
             flags=[],
+            language=_normalize_report_language(language),
+            audio_storage_path=None,
             generated_at=generated_at,
             created_at=generated_at,
             updated_at=generated_at,
@@ -276,20 +437,45 @@ def _mock_report(start_date: date, end_date: date) -> Report:
         title=source.title,
         start_date=start_date,
         end_date=end_date,
-        summary=source.summary,
-        flags=[ReportFlag(severity="flag", text=flag.text) for flag in source.flags],
+        summary_narrative=source.summary_narrative,
+        summary_bullets=[
+            ReportSummaryBullet(
+                text=item.text,
+                references=[
+                    ReportReference(date_label=reference.date_label, source_type=reference.source_type)
+                    for reference in item.references
+                ],
+            )
+            for item in source.summary_bullets
+        ],
+        flags=[
+            ReportFlag(what=item.what, why=item.why)
+            for item in source.flags
+        ],
+        language=source.language or _normalize_report_language(language),
+        audio_storage_path=source.audio_storage_path,
         generated_at=generated_at,
         created_at=generated_at,
         updated_at=generated_at,
     )
 
 
-async def generate_report(patient_id: str, start_date: date, end_date: date) -> Report:
+def get_report_audio_bytes(report: Report) -> bytes:
+    raise HTTPException(status_code=404, detail="Report audio overview is currently disabled")
+
+
+def get_report_detail(report_id: str) -> Report | None:
+    return report_repo.get_by_id(report_id)
+
+
+async def generate_report(patient_id: str, start_date: date, end_date: date, language: str = "en") -> Report:
     if start_date > end_date:
         raise HTTPException(status_code=400, detail="start_date must be on or before end_date")
 
+    normalized_language = _normalize_report_language(language)
+
     if mock_data.is_enabled():
-        return _mock_report(start_date, end_date)
+        return _mock_report(start_date, end_date, normalized_language)
 
     patient = _load_patient_by_id(patient_id)
     if patient is None or not patient.id:
@@ -325,9 +511,10 @@ async def generate_report(patient_id: str, start_date: date, end_date: date) -> 
         raise HTTPException(status_code=502, detail="Anthropic SDK is not installed") from exc
 
     client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+    base_prompt = _build_report_prompt(evidence_bundle, normalized_language)
     prompts = [
-        REPORT_PROMPT.format(evidence_bundle=evidence_bundle),
-        REPORT_PROMPT.format(evidence_bundle=evidence_bundle) + STRICT_JSON_SUFFIX,
+        base_prompt,
+        base_prompt + STRICT_JSON_SUFFIX,
     ]
 
     parsed_response: dict | None = None
@@ -341,7 +528,7 @@ async def generate_report(patient_id: str, start_date: date, end_date: date) -> 
             try:
                 response = client.messages.create(
                     model=model_name,
-                    max_tokens=2000,
+                    max_tokens=2400,
                     messages=[{"role": "user", "content": prompt}],
                 )
                 parsed_response = _parse_report_payload(_collect_text(response))
@@ -367,23 +554,20 @@ async def generate_report(patient_id: str, start_date: date, end_date: date) -> 
                     f"Tried: {', '.join(report_model_candidates)}. Last error: {api_error}"
                 ),
             ) from api_error
-        message = f"Claude response could not be parsed as JSON: {last_error}" if last_error else "Claude response could not be parsed as JSON"
+        message = (
+            f"Claude response could not be parsed as JSON: {last_error}"
+            if last_error
+            else "Claude response could not be parsed as JSON"
+        )
         raise HTTPException(status_code=502, detail=message)
 
     report_count = report_repo.count(patient_id)
-    flags = [
-        ReportFlag(severity="flag", text=item["text"])
-        for item in parsed_response.get("flags", [])
-        if isinstance(item, dict) and isinstance(item.get("text"), str) and item["text"].strip()
-    ]
-
-    report = Report(
+    report = _report_from_payload(
         patient_id=patient_id,
         title=f"Report #{report_count + 1}",
         start_date=start_date,
         end_date=end_date,
-        summary=parsed_response["summary"].strip(),
-        flags=flags,
-        generated_at=datetime.now(timezone.utc),
+        language=normalized_language,
+        payload=parsed_response,
     )
     return report_repo.create(report)

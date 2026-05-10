@@ -80,8 +80,18 @@ export interface DailyWellbeingRequest {
 }
 
 export interface ReportFlag {
-  severity?: string
+  what: string
+  why: string
+}
+
+export interface ReportReference {
+  date_label: string
+  source_type: 'voice_note' | 'daily_wellbeing' | 'medication'
+}
+
+export interface ReportSummaryBullet {
   text: string
+  references: ReportReference[]
 }
 
 export interface ReportSummary {
@@ -93,8 +103,11 @@ export interface ReportSummary {
 }
 
 export interface ReportDetail extends ReportSummary {
-  summary: string
+  summary_narrative: string
+  summary_bullets: ReportSummaryBullet[]
   flags: ReportFlag[]
+  language: AppLanguage
+  audio_storage_path: string | null
 }
 
 interface ReportContext {
@@ -146,6 +159,84 @@ function getMockData(): MockData {
 
 function withBase(path: string): string {
   return API_BASE ? `${API_BASE}${path}` : path
+}
+
+function normalizeReportDetail(input: unknown): ReportDetail {
+  const report = (input && typeof input === 'object' ? input : {}) as Partial<ReportDetail> & {
+    summary?: unknown
+    [key: string]: unknown
+  }
+  const legacySummary =
+    typeof report.summary_narrative === 'string'
+      ? report.summary_narrative
+      : typeof report.summary === 'string'
+        ? report.summary
+        : ''
+
+  const summaryBullets = Array.isArray(report.summary_bullets)
+    ? report.summary_bullets
+        .map((item) => {
+          if (!item || typeof item !== 'object') return null
+          const candidate = item as Partial<ReportSummaryBullet>
+          if (typeof candidate.text !== 'string' || !candidate.text.trim()) return null
+          const references = Array.isArray(candidate.references)
+            ? candidate.references.filter(
+                (reference): reference is ReportReference =>
+                  Boolean(
+                    reference &&
+                    typeof reference === 'object' &&
+                    typeof reference.date_label === 'string' &&
+                    typeof reference.source_type === 'string',
+                  ),
+              )
+            : []
+          return {
+            text: candidate.text,
+            references,
+          }
+        })
+        .filter((item): item is ReportSummaryBullet => item !== null)
+    : legacySummary
+      ? [{ text: legacySummary, references: [] }]
+      : []
+
+  const flags = Array.isArray(report.flags)
+    ? report.flags
+        .map((item) => {
+          if (!item || typeof item !== 'object') return null
+          const candidate = item as Partial<ReportFlag> & { text?: string }
+          if (typeof candidate.what === 'string' && typeof candidate.why === 'string') {
+            return {
+              what: candidate.what,
+              why: candidate.why,
+            }
+          }
+          if (typeof candidate.text === 'string') {
+            return {
+              what: candidate.text,
+              why: 'Mention this observation during the next doctor visit.',
+            }
+          }
+          return null
+        })
+        .filter((item): item is ReportFlag => item !== null)
+    : []
+
+  return {
+    id: String(report.id ?? ''),
+    title: String(report.title ?? 'Report'),
+    start_date: String(report.start_date ?? ''),
+    end_date: String(report.end_date ?? ''),
+    generated_at: String(report.generated_at ?? new Date().toISOString()),
+    summary_narrative: legacySummary,
+    summary_bullets: summaryBullets,
+    flags,
+    language:
+      report.language === 'zh' || report.language === 'ms' || report.language === 'ta'
+        ? report.language
+        : 'en',
+    audio_storage_path: typeof report.audio_storage_path === 'string' ? report.audio_storage_path : null,
+  }
 }
 
 function getReportContext(): ReportContext | null {
@@ -521,12 +612,12 @@ export async function postReport(startDate: string, endDate: string): Promise<Re
   if (MOCK_MODE) {
     const report = getMockData().reports?.[0]
     if (!report) return null
-    return {
+    return normalizeReportDetail({
       ...report,
       start_date: startDate,
       end_date: endDate,
       generated_at: new Date().toISOString(),
-    }
+    })
   }
 
   try {
@@ -539,10 +630,11 @@ export async function postReport(startDate: string, endDate: string): Promise<Re
         start_date: startDate,
         end_date: endDate,
         patient_id: context.patient_id,
+        language: window.localStorage.getItem('pulse-language') || 'en',
       }),
     })
     if (!res.ok) return null
-    return (await res.json()) as ReportDetail
+    return normalizeReportDetail((await res.json()) as ReportDetail)
   } catch {
     return null
   }
@@ -551,7 +643,8 @@ export async function postReport(startDate: string, endDate: string): Promise<Re
 export async function fetchReport(id: string): Promise<ReportDetail | null> {
   if (MOCK_MODE) {
     const reports = getMockData().reports ?? []
-    return reports.find((report) => report.id === id) ?? null
+    const report = reports.find((item) => item.id === id)
+    return report ? normalizeReportDetail(report) : null
   }
 
   try {
@@ -565,7 +658,7 @@ export async function fetchReport(id: string): Promise<ReportDetail | null> {
       ),
     )
     if (!res.ok) return null
-    return (await res.json()) as ReportDetail
+    return normalizeReportDetail((await res.json()) as ReportDetail)
   } catch {
     return null
   }

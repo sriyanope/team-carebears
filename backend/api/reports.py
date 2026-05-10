@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 
 from ..config import settings
 from ..firebase_client import get_firestore_client, normalize_timestamp
@@ -9,7 +9,7 @@ from ..repositories import patient as patient_repo
 from ..repositories import report as report_repo
 from ..schemas.report import ReportDetailResponse, ReportGenerateRequest, ReportSummaryResponse
 from ..services import mock_data
-from ..services.report import generate_report
+from ..services.report import generate_report, get_report_audio_bytes, get_report_detail
 
 router = APIRouter()
 
@@ -90,7 +90,7 @@ async def create_report(body: ReportGenerateRequest):
     patient = _resolve_patient(body.patient_id, body.caregiver_name, body.patient_name)
     if patient is None or not patient.id:
         raise HTTPException(status_code=404, detail="No patient found")
-    return await generate_report(patient.id, body.start_date, body.end_date)
+    return await generate_report(patient.id, body.start_date, body.end_date, body.language)
 
 
 @router.get("/api/reports/{report_id}", response_model=ReportDetailResponse)
@@ -106,10 +106,27 @@ def get_report(
             raise HTTPException(status_code=404, detail="Report not found")
         return report
 
-    report = report_repo.get_by_id(report_id)
+    report = get_report_detail(report_id)
     if report is None:
         raise HTTPException(status_code=404, detail="Report not found")
     patient = _resolve_patient(patient_id, caregiver_name, patient_name)
     if patient is not None and patient.id and report.patient_id != patient.id:
         raise HTTPException(status_code=404, detail="Report not found")
     return report
+
+
+@router.get("/api/reports/{report_id}/audio")
+def get_report_audio(
+    report_id: str,
+    patient_id: str | None = None,
+    caregiver_name: str | None = None,
+    patient_name: str | None = None,
+):
+    report = get_report_detail(report_id)
+    if report is None:
+        raise HTTPException(status_code=404, detail="Report not found")
+    patient = _resolve_patient(patient_id, caregiver_name, patient_name)
+    if patient is not None and patient.id and report.patient_id != patient.id:
+        raise HTTPException(status_code=404, detail="Report not found")
+    audio_bytes = get_report_audio_bytes(report)
+    return Response(content=audio_bytes, media_type="audio/mpeg")

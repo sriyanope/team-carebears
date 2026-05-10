@@ -31,6 +31,12 @@ function formatGeneratedAt(value: string): string {
   }).format(new Date(value))
 }
 
+const SOURCE_TYPE_LABELS: Record<string, string> = {
+  voice_note: 'Voice Note',
+  daily_wellbeing: 'Wellbeing',
+  medication: 'Medication',
+}
+
 export default function ReportDetailPage() {
   const params = useParams<{ id: string }>()
   const reportId = Array.isArray(params.id) ? params.id[0] : params.id
@@ -90,19 +96,65 @@ export default function ReportDetailPage() {
               <AppIcon icon={Flag01Icon} size={24} className="text-rose-500" />
               Things to Flag
             </h2>
+=======
+            <h2 className="text-2xl font-semibold text-stone-900">🚩 Things to Flag</h2>
+>>>>>>> Stashed changes
             {report.flags.length === 0 ? (
               <p className="mt-4 text-[20px] leading-[1.75] text-stone-700">
                 Nothing specific to flag for this period.
               </p>
             ) : (
-              <div className="mt-4 divide-y divide-stone-100">
+              <div className="mt-4 space-y-4">
                 {report.flags.map((flag, index) => (
-                  <p key={`${report.id}-flag-${index}`} className="py-4 text-[20px] leading-[1.75] text-stone-700 first:pt-0 last:pb-0">
-                    {flag.text}
-                  </p>
+                  <article
+                    key={`${report.id}-flag-${index}`}
+                    className="rounded-2xl border border-rose-100 bg-rose-50/50 p-4"
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-500">
+                      What Happened
+                    </p>
+                    <p className="mt-2 text-base leading-7 text-stone-800">{flag.what}</p>
+                    <p className="mt-4 text-xs font-semibold uppercase tracking-[0.18em] text-rose-500">
+                      Why Flag This
+                    </p>
+                    <p className="mt-2 text-base leading-7 text-stone-700">{flag.why}</p>
+                  </article>
                 ))}
               </div>
             )}
+          </section>
+
+          <section className="rounded-2xl border border-stone-100 bg-white p-6 shadow-sm">
+            <h2 className="text-2xl font-semibold text-stone-900">Summary</h2>
+            {/* <p className="mt-4 text-[19px] leading-[1.8] text-stone-700">{report.summary_narrative}</p> */}
+
+            <div className="mt-6 space-y-4">
+              {report.summary_bullets.map((bullet, index) => (
+                <article
+                  key={`${report.id}-summary-${index}`}
+                  className="rounded-2xl border border-stone-100 bg-stone-50 p-4"
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="mt-1 text-lg text-blue-500">•</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-base leading-7 text-stone-800">{bullet.text}</p>
+                      {bullet.references.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {bullet.references.map((reference, referenceIndex) => (
+                            <span
+                              key={`${report.id}-summary-${index}-ref-${referenceIndex}`}
+                              className="rounded-full bg-white px-3 py-1 text-xs font-medium text-stone-600 ring-1 ring-stone-200"
+                            >
+                              {reference.date_label} · {SOURCE_TYPE_LABELS[reference.source_type] ?? reference.source_type}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
           </section>
 
           <p className="text-base text-stone-400">

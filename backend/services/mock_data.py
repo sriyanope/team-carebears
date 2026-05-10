@@ -62,7 +62,45 @@ def get_reports() -> list[ReportDetailResponse] | None:
     data = _load_mock_data().get("reports")
     if not data:
         return None
-    return [ReportDetailResponse.model_validate(item) for item in data]
+    normalized_reports = []
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+        summary_narrative = item.get("summary_narrative") or item.get("summary") or ""
+        summary_bullets = item.get("summary_bullets")
+        if not isinstance(summary_bullets, list):
+            summary_bullets = [{"text": summary_narrative, "references": []}] if summary_narrative else []
+
+        flags = item.get("flags")
+        if not isinstance(flags, list):
+            flags = []
+        normalized_flags = []
+        for flag in flags:
+            if not isinstance(flag, dict):
+                continue
+            if isinstance(flag.get("what"), str) and isinstance(flag.get("why"), str):
+                normalized_flags.append(flag)
+            elif isinstance(flag.get("text"), str):
+                normalized_flags.append(
+                    {
+                        "what": flag["text"],
+                        "why": "Mention this observation during the next doctor visit.",
+                    }
+                )
+
+        normalized_reports.append(
+            ReportDetailResponse.model_validate(
+                {
+                    **item,
+                    "summary_narrative": summary_narrative,
+                    "summary_bullets": summary_bullets,
+                    "flags": normalized_flags,
+                    "language": item.get("language", "en"),
+                    "audio_storage_path": item.get("audio_storage_path"),
+                }
+            )
+        )
+    return normalized_reports
 
 
 def get_report(report_id: str) -> ReportDetailResponse | None:
