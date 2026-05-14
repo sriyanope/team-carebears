@@ -43,13 +43,13 @@ The generated reports combine voice notes, daily wellbeing entries, and medicati
 - Firestore for app data
 - Firebase Storage support
 - OpenAI Whisper for audio transcription (Multilingual)
-- Anthropic Claude for report generation
+- OpenAI GPT-5.4 for report generation
 
 ### Data and AI
 
 - Firestore collections store patients, caregivers, voice notes, daily wellbeing entries, medications, and reports.
 - OpenAI Whisper can run through the API or a local Whisper model.
-- Claude generates structured JSON reports from an evidence bundle assembled by the backend.
+- GPT-5.4 generates structured JSON reports from an evidence bundle assembled by the backend.
 - Mock mode is available for demo and development flows.
 
 ## Repository Structure
@@ -95,8 +95,8 @@ FIREBASE_MODE=true
 FIREBASE_PROJECT_ID=your-project-id
 FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
 FIREBASE_CREDENTIALS_JSON={}
-ANTHROPIC_API_KEY=your-anthropic-key
 OPENAI_API_KEY=your-openai-key
+OPENAI_REPORT_MODEL=gpt-5.4
 WHISPER_MODE=api
 CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 ```
@@ -151,8 +151,8 @@ http://localhost:3000
 - `FIREBASE_STORAGE_BUCKET`: Firebase Storage bucket name.
 - `FIREBASE_CREDENTIALS_JSON`: Firebase service account JSON for hosted environments.
 - `FIREBASE_CREDENTIALS_PATH`: Local path to a Firebase service account file.
-- `ANTHROPIC_API_KEY`: Used for AI report generation.
-- `OPENAI_API_KEY`: Used when `WHISPER_MODE=api`.
+- `OPENAI_API_KEY`: Used for AI report generation and when `WHISPER_MODE=api`.
+- `OPENAI_REPORT_MODEL`: OpenAI model used for AI report generation. Defaults to `gpt-5.4`.
 - `WHISPER_MODE`: `api` for OpenAI Whisper API or `local` for local Whisper.
 - `WHISPER_MODEL`: Local Whisper model size when using local mode.
 - `CORS_ALLOWED_ORIGINS`: Comma-separated list of allowed frontend origins.
@@ -183,8 +183,8 @@ FIREBASE_MODE=true
 FIREBASE_PROJECT_ID=...
 FIREBASE_STORAGE_BUCKET=...
 FIREBASE_CREDENTIALS_JSON=...
-ANTHROPIC_API_KEY=...
 OPENAI_API_KEY=...
+OPENAI_REPORT_MODEL=gpt-5.4
 WHISPER_MODE=api
 CORS_ALLOWED_ORIGINS=https://your-vercel-domain.vercel.app,http://localhost:3000,http://127.0.0.1:3000
 ```

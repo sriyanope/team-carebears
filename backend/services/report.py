@@ -1,6 +1,5 @@
 import json
 import logging
-import os
 import re
 from datetime import date, datetime, timedelta, timezone
 
@@ -71,24 +70,57 @@ If there is very little data or nothing notable:
 {evidence_bundle}
 """.strip()
 
-STRICT_JSON_SUFFIX = """
-
-IMPORTANT:
-- Return a single valid JSON object only.
-- No markdown fences.
-- No explanatory text before or after the JSON.
-- "summary_narrative" must be a string.
-- "summary_bullets" must be a list of objects with "text" and "references".
-- "flags" must be a list of objects with "what" and "why".
-""".rstrip()
-
-DEFAULT_REPORT_MODEL_CANDIDATES = [
-    "claude-sonnet-4-6",
-    "claude-sonnet-4-5-20250929",
-    "claude-opus-4-7",
-    "claude-opus-4-6",
-    "claude-opus-4-1-20250805",
-]
+REPORT_RESPONSE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "summary_narrative": {
+            "type": "string",
+            "description": "A detailed, compassionate narrative summary paragraph grounded only in the evidence bundle.",
+        },
+        "summary_bullets": {
+            "type": "array",
+            "description": "Condensed but information-dense summary bullets with compact evidence references.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "text": {"type": "string"},
+                    "references": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "date_label": {"type": "string"},
+                                "source_type": {
+                                    "type": "string",
+                                    "enum": ["voice_note", "daily_wellbeing", "medication"],
+                                },
+                            },
+                            "required": ["date_label", "source_type"],
+                            "additionalProperties": False,
+                        },
+                    },
+                },
+                "required": ["text", "references"],
+                "additionalProperties": False,
+            },
+        },
+        "flags": {
+            "type": "array",
+            "description": "Genuinely notable items the caregiver should mention to the doctor.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "what": {"type": "string"},
+                    "why": {"type": "string"},
+                },
+                "required": ["what", "why"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["summary_narrative", "summary_bullets", "flags"],
+    "additionalProperties": False,
+}
 
 REPORT_LANGUAGE_NAMES = {
     "en": "English",
@@ -139,12 +171,17 @@ def _report_language_name(language: str) -> str:
     return REPORT_LANGUAGE_NAMES.get(_normalize_report_language(language), "English")
 
 
-def _collect_text(response) -> str:
+def _collect_response_text(response) -> str:
+    output_text = getattr(response, "output_text", None)
+    if isinstance(output_text, str) and output_text.strip():
+        return output_text.strip()
+
     parts: list[str] = []
-    for block in response.content:
-        text = getattr(block, "text", None)
-        if text:
-            parts.append(text)
+    for output_item in getattr(response, "output", []) or []:
+        for content_item in getattr(output_item, "content", []) or []:
+            text = getattr(content_item, "text", None)
+            if isinstance(text, str) and text:
+                parts.append(text)
     return "\n".join(parts).strip()
 
 
@@ -185,18 +222,18 @@ def _parse_report_payload(raw_text: str) -> dict:
     cleaned = _strip_json_fences(raw_text)
     data = json.loads(cleaned)
     if not isinstance(data, dict):
-        raise ValueError("Claude response was not a JSON object")
+        raise ValueError("OpenAI report response was not a JSON object")
 
     summary_narrative = data.get("summary_narrative")
     summary_bullets = data.get("summary_bullets", [])
     flags = data.get("flags", [])
 
     if not isinstance(summary_narrative, str) or not summary_narrative.strip():
-        raise ValueError("Claude response did not include a string summary_narrative")
+        raise ValueError("OpenAI report response did not include a string summary_narrative")
     if not isinstance(summary_bullets, list):
-        raise ValueError("Claude response did not include a list summary_bullets")
+        raise ValueError("OpenAI report response did not include a list summary_bullets")
     if not isinstance(flags, list):
-        raise ValueError("Claude response did not include a list flags")
+        raise ValueError("OpenAI report response did not include a list flags")
 
     normalized_bullets: list[dict] = []
     for item in summary_bullets:
@@ -213,7 +250,7 @@ def _parse_report_payload(raw_text: str) -> dict:
         )
 
     if not normalized_bullets:
-        raise ValueError("Claude response did not include any valid summary bullets")
+        raise ValueError("OpenAI report response did not include any valid summary bullets")
 
     normalized_flags: list[dict] = []
     for item in flags:
@@ -232,15 +269,6 @@ def _parse_report_payload(raw_text: str) -> dict:
         "summary_bullets": normalized_bullets,
         "flags": normalized_flags,
     }
-
-
-def _get_report_model_candidates() -> list[str]:
-    configured = os.getenv("ANTHROPIC_REPORT_MODELS", "").strip()
-    if not configured:
-        return DEFAULT_REPORT_MODEL_CANDIDATES
-
-    models = [item.strip() for item in configured.split(",") if item.strip()]
-    return models or DEFAULT_REPORT_MODEL_CANDIDATES
 
 
 def _load_patient_by_id(patient_id: str) -> Patient | None:
@@ -502,64 +530,41 @@ async def generate_report(patient_id: str, start_date: date, end_date: date, lan
         medications=medications,
     )
 
-    if not settings.ANTHROPIC_API_KEY:
-        raise HTTPException(status_code=502, detail="Anthropic API key is not configured")
+    if not settings.OPENAI_API_KEY:
+        raise HTTPException(status_code=502, detail="OpenAI API key is not configured")
 
     try:
-        import anthropic
+        from openai import OpenAI
     except ModuleNotFoundError as exc:
-        raise HTTPException(status_code=502, detail="Anthropic SDK is not installed") from exc
+        raise HTTPException(status_code=502, detail="OpenAI SDK is not installed") from exc
 
-    client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
-    base_prompt = _build_report_prompt(evidence_bundle, normalized_language)
-    prompts = [
-        base_prompt,
-        base_prompt + STRICT_JSON_SUFFIX,
-    ]
+    client = OpenAI(api_key=settings.OPENAI_API_KEY)
+    prompt = _build_report_prompt(evidence_bundle, normalized_language)
 
-    parsed_response: dict | None = None
-    last_error: Exception | None = None
-    api_error: Exception | None = None
-
-    report_model_candidates = _get_report_model_candidates()
-
-    for model_name in report_model_candidates:
-        for prompt in prompts:
-            try:
-                response = client.messages.create(
-                    model=model_name,
-                    max_tokens=2400,
-                    messages=[{"role": "user", "content": prompt}],
-                )
-                parsed_response = _parse_report_payload(_collect_text(response))
-                break
-            except json.JSONDecodeError as exc:
-                last_error = exc
-            except ValueError as exc:
-                last_error = exc
-            except Exception as exc:
-                api_error = exc
-                if "404" in str(exc):
-                    break
-                raise HTTPException(status_code=502, detail=f"Claude API call failed: {exc}") from exc
-        if parsed_response is not None:
-            break
-
-    if parsed_response is None:
-        if api_error is not None and "404" in str(api_error):
-            raise HTTPException(
-                status_code=502,
-                detail=(
-                    "Claude API rejected all configured report models. "
-                    f"Tried: {', '.join(report_model_candidates)}. Last error: {api_error}"
-                ),
-            ) from api_error
-        message = (
-            f"Claude response could not be parsed as JSON: {last_error}"
-            if last_error
-            else "Claude response could not be parsed as JSON"
+    try:
+        response = client.responses.create(
+            model=settings.OPENAI_REPORT_MODEL,
+            input=prompt,
+            max_output_tokens=2400,
+            text={
+                "format": {
+                    "type": "json_schema",
+                    "name": "caregiving_report",
+                    "strict": True,
+                    "schema": REPORT_RESPONSE_SCHEMA,
+                }
+            },
         )
-        raise HTTPException(status_code=502, detail=message)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"OpenAI report generation failed: {exc}") from exc
+
+    try:
+        parsed_response = _parse_report_payload(_collect_response_text(response))
+    except (json.JSONDecodeError, ValueError) as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"OpenAI report response could not be parsed as JSON: {exc}",
+        ) from exc
 
     report_count = report_repo.count(patient_id)
     report = _report_from_payload(
